@@ -3,7 +3,7 @@
 BubbleH is an implementation of siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/)
  
 
-## Release Notes
+### Release Notes
 
 v1.0 Initial Public Release
 
