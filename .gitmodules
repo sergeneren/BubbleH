@@ -1,0 +1,3 @@
+[submodule "thirdparty/MultiTracker"]
+	path = thirdparty/MultiTracker
+	url = https://github.com/christopherbatty/MultiTracker
