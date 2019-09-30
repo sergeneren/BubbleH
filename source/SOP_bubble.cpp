@@ -68,34 +68,65 @@ void newSopOperator(OP_OperatorTable *table) {
 // Parameter defaults
 static PRM_Name param_names[] = {
 
-	PRM_Name("res", "Camera Resolution"),
-	PRM_Name("sizex", "Camera Size x"),
-	PRM_Name("spp", "Samples Per Pixel"),
-	PRM_Name("depth", "Ray Depth"),
-	PRM_Name("vs", "Volume Samples"),
-	PRM_Name("color", "Color"),
-	PRM_Name("attenuation", "Attenuation"),
-	PRM_Name("density", "Density"),
-	PRM_Name("sdm", "Shadow Density Multiplier"),
-	PRM_Name("max_dist", "Maximum Distance"),
-	PRM_Name("steprate", "Volume Step Rate"),
+	PRM_Name("dt"			, "time step"),
+	PRM_Name("implicit"		, "Implicit Integration"),
+	PRM_Name("sc"			, "Smoothing Coefficient"),
+	PRM_Name("dc"			, "Damping Coefficient"),
+	PRM_Name("sigma"		, "Sigma"),
+	PRM_Name("bend"			, "Bending"),
+	PRM_Name("strech"		, "Streching"),
+	PRM_Name("g"			, "Gravity"),
+	PRM_Name("radius"		, "Radius"),
+	PRM_Name("remesh_res"	, "Remeshing Resolution"),
+	PRM_Name("remesh_iter"	, "Remeshing Iterations"),
+	PRM_Name("coll_eps"		, "Collision Epsilon Fraction"),
+	PRM_Name("merge_eps"	, "Merge Epsilon Fraction"),
+	PRM_Name("lt_smooth"	, "Perform Smoothing"),
+	PRM_Name("vc_f"			, "Volume Change Fraction"),
+	PRM_Name("min_tri_ang"	, "Min Triangle Angle"),
+	PRM_Name("max_tri_ang"	, "Max Triangle Angle"),
+	PRM_Name("large_tri"	, "Large Triangle Angle"),
+	PRM_Name("min_tri_area"	, "Min Triangle Area"),
+	PRM_Name("t1_trans"		, "T1 Transition"),
+	PRM_Name("t1_pull"		, "T1 Pull Apart Distance Fraction"),
+	PRM_Name("lt_sm_subd"	, "Smooth Subdivision"),
+};
 
+static PRM_Name         switcherName("shakeswitcher");
+
+static PRM_Default      switcher[] = {
+	PRM_Default(9, "Simulation"),   
+	PRM_Default(2, "Remeshing"),
+	PRM_Default(11, "LT Surface"),
 };
 
 
 PRM_Template SOP_bubble::myTemplateList[] = {
 
-	PRM_Template(PRM_INT_J, 2 , &param_names[0], PRMzeroDefaults),
-	PRM_Template(PRM_FLT, 1 , &param_names[1], PRMzeroDefaults),
-	PRM_Template(PRM_INT, 1 , &param_names[2], PRMoneDefaults),
-	PRM_Template(PRM_INT, 1 , &param_names[3], PRMtwoDefaults),
-	PRM_Template(PRM_INT, 1 , &param_names[4], PRMoneDefaults),
-	PRM_Template(PRM_RGB, 3 , &param_names[5], PRMoneDefaults),
-	PRM_Template(PRM_RGB, 3 , &param_names[6], PRMoneDefaults),
-	PRM_Template(PRM_FLT, 1 , &param_names[7], PRMpointOneDefaults),
-	PRM_Template(PRM_FLT, 1 , &param_names[8], PRMoneDefaults),
-	PRM_Template(PRM_FLT, 1 , &param_names[9], PRM100Defaults),
-	PRM_Template(PRM_FLT, 1 , &param_names[10], PRMpointOneDefaults),
+	PRM_Template(PRM_SWITCHER,  sizeof(switcher) / sizeof(PRM_Default), &switcherName, switcher),
+
+	PRM_Template(PRM_FLT, 1 , &param_names[0], PRMpointOneDefaults),		// dt
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[1], PRMzeroDefaults),			// implicit
+	PRM_Template(PRM_FLT, 1 , &param_names[2], PRMoneDefaults),				// sc
+	PRM_Template(PRM_FLT, 1 , &param_names[3], PRMoneDefaults),				// dc
+	PRM_Template(PRM_FLT, 1 , &param_names[4], PRMoneDefaults),				// sigma
+	PRM_Template(PRM_FLT, 1 , &param_names[5], PRM100Defaults),				// bend
+	PRM_Template(PRM_FLT, 1 , &param_names[6], PRM100Defaults),				// strech
+	PRM_Template(PRM_FLT, 3 , &param_names[7], PRMzeroDefaults),			// g
+	PRM_Template(PRM_FLT, 1 , &param_names[8], PRMpointOneDefaults),		// radius
+	PRM_Template(PRM_FLT, 1 , &param_names[9], PRMpointOneDefaults),		// remesh res
+	PRM_Template(PRM_INT, 1 , &param_names[10], PRMtwoDefaults),			// remesh iter
+	PRM_Template(PRM_FLT, 1 , &param_names[11], PRMpointOneDefaults),		// Collision Epsilon Fraction
+	PRM_Template(PRM_FLT, 1 , &param_names[12], PRMpointOneDefaults),		// Merge Epsilon Fraction
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[13], PRMzeroDefaults),		// Perform Smoothing
+	PRM_Template(PRM_FLT, 1 , &param_names[14], PRMpointOneDefaults),		// Volume Change Fraction
+	PRM_Template(PRM_FLT, 1 , &param_names[15], PRMthreeDefaults),			// Min Triangle Angle
+	PRM_Template(PRM_FLT, 1 , &param_names[16], PRM180Defaults),			// Max Triangle Angle
+	PRM_Template(PRM_FLT, 1 , &param_names[17], PRM180Defaults),			// Large Triangle Angle
+	PRM_Template(PRM_FLT, 1 , &param_names[18], PRMpointOneDefaults),		// Min Triangle Area
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[19], PRMoneDefaults),			// T1 Transition
+	PRM_Template(PRM_FLT, 1 , &param_names[20], PRMpointOneDefaults),		// T1 Pull Apart Distance Fraction
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[21], PRMzeroDefaults),		// Smooth Subdivision
 	PRM_Template()
 };
 
@@ -125,6 +156,35 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	
 	fpreal t = context.getTime();
 	
+
+	fpreal dt = DT(t); 
+	size_t imp = IMP(t); 
+	fpreal sc = SC(t); 
+	fpreal dc = DC(t); 
+	fpreal sigma = SIGMA(t); 
+	fpreal bend = BEND(t); 
+	fpreal strech = STRECH(t); 
+	UT_Vector3F g = G(t); 
+	fpreal radius = RAD(t); 
+	fpreal remesh_res = REMESH_RES(t); 
+	size_t remesh_iter = REMESH_ITE(t); 
+	fpreal coll_frac = COLL_EPS(t); 
+	fpreal merge_frac = MERGE_EPS(t); 
+	size_t smooth = SMOOTH(t); 
+	fpreal vol_frac = VC_F(t); 
+	fpreal min_tri_ang = MIN_TRI_ANG(t); 
+	fpreal max_tri_ang = MAX_TRI_ANG(t); 
+	fpreal large_tri = LAR_TRI_ANG(t); 
+	fpreal min_tri_area = MIN_TRI_AREA(t); 
+	size_t t1_trans = T1_TRANS(t); 
+	fpreal t1_trans_frac = T1_PULL(t); 
+	size_t smooth_subdiv = LT_SM_SBD(t); 
+
+
+
+
+
+	/*
 	UT_Vector2 res = RES(t); 
 	size_t spp = SPP(t);
 	size_t depth = DEPTH(t);
@@ -137,8 +197,10 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	float maxdist = MAXDIST(t); 
 	float steprate = STEPRATE(t); 
 	
+	
+
 	//Get inputs
-	/*
+	
 	const GU_Detail *cam_gdp	= inputGeo(1);
 	const GU_Detail *prim_gdp	= inputGeo(2);
 	const GU_Detail *vol_gdp	= inputGeo(3);

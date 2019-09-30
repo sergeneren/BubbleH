@@ -22,6 +22,7 @@ find_package (Eigen3 REQUIRED)
 find_package (CLAPACK REQUIRED)
 find_package (BLAS REQUIRED)
 
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LosTopos/LosTopos3D)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LosTopos/common)

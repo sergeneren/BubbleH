@@ -62,15 +62,7 @@ namespace BUBBLE {
 		
 		virtual const char *inputLabel(unsigned idx) const override 
 		{
-			switch (idx)
-			{
-			case 0:     return "Rendering Grid";
-			case 1:     return "Camera";
-			case 2:     return "Primitives";
-			case 3:     return "Volumes";
-			case 4:     return "Lights";
-			default:    return "Invalid Source";
-			}
+			return "Input Mesh";
 		}
 
 	private: // Parameter accessors
@@ -90,23 +82,31 @@ namespace BUBBLE {
 		}
 		// End vector evaluaters
 
-		UT_Vector2 RES(fpreal t)		{ return evalVector2("res", t); }
-		size_t	   SPP(fpreal t)		{ return evalInt("spp", 0, t); }
-		size_t	   DEPTH(fpreal t)		{ return evalInt("depth", 0, t); }
-		size_t	   VS(fpreal t)			{ return evalInt("vs", 0, t); }
-		fpreal	   SIZEX(fpreal t)		{ return evalFloat("sizex", 0, t); }
-		UT_Vector3 COLOR(fpreal t)		{ return evalVector3("color", t); }
-		UT_Vector3 ATTN(fpreal t)		{ return evalVector3("attenuation", t); }
-		fpreal	   DENSITY(fpreal t)	{ return evalFloat("density", 0, t); }
-		fpreal	   SDM(fpreal t)		{ return evalFloat("sdm", 0, t); }
-		fpreal	   MAXDIST(fpreal t)	{ return evalFloat("max_dist", 0, t); }
-		fpreal	   STEPRATE(fpreal t)	{ return evalFloat("steprate", 0, t); }
+		fpreal	   DT(fpreal t)				{ return evalFloat("dt", 0, t); }
+		size_t	   IMP(fpreal t)			{ return evalInt("implicit", 0, t); }
+		fpreal	   SC(fpreal t)				{ return evalFloat("sc", 0, t); }
+		fpreal	   DC(fpreal t)				{ return evalFloat("dc", 0, t); }
+		fpreal	   SIGMA(fpreal t)			{ return evalFloat("sigma", 0, t); }
+		fpreal	   BEND(fpreal t)			{ return evalFloat("bend", 0, t); }
+		fpreal	   STRECH(fpreal t)			{ return evalFloat("strech", 0, t); }
+		UT_Vector3 G(fpreal t)				{ return evalVector3("g", t); }
+		fpreal	   RAD(fpreal t)			{ return evalFloat("radius", 0, t); }
+		fpreal	   REMESH_RES(fpreal t)		{ return evalFloat("remesh_res", 0, t); }
+		size_t	   REMESH_ITE(fpreal t)		{ return evalInt("remesh_iter", 0, t); }
+		fpreal	   COLL_EPS(fpreal t)		{ return evalFloat("coll_eps", 0, t); }
+		fpreal	   MERGE_EPS(fpreal t)		{ return evalFloat("merge_eps", 0, t); }
+		size_t	   SMOOTH(fpreal t)			{ return evalInt("lt_smooth", 0, t); }
+		fpreal	   VC_F(fpreal t)			{ return evalFloat("vc_f", 0, t); }
+		fpreal	   MIN_TRI_ANG(fpreal t)	{ return evalFloat("min_tri_ang", 0, t); }
+		fpreal	   MAX_TRI_ANG(fpreal t)	{ return evalFloat("max_tri_ang", 0, t); }
+		fpreal	   LAR_TRI_ANG(fpreal t)	{ return evalFloat("large_tri", 0, t); }
+		fpreal	   MIN_TRI_AREA(fpreal t)	{ return evalFloat("min_tri_area", 0, t); }
+		size_t	   T1_TRANS(fpreal t)		{ return evalInt("t1_trans", 0, t); }
+		fpreal	   T1_PULL(fpreal t)		{ return evalFloat("t1_pull", 0, t); }
+		size_t	   LT_SM_SBD(fpreal t)		{ return evalInt("lt_sm_subd", 0, t); }
 
 
 	};
 } // End namespace
 
 #endif // !__BUBBLE__
-
-
-
