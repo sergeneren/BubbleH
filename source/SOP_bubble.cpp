@@ -35,6 +35,7 @@
 
 #include "SOP_bubble.h"
 #include "VS3D.h"
+#include "SimOptions.h"
 
 //Houdini
 #include <GU/GU_Detail.h>
@@ -162,30 +163,51 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	fpreal t = context.getTime();
 	
 
-	fpreal dt = DT(t); 
-	size_t imp = IMP(t); 
-	size_t pbd = PBD(t);
-	size_t rk4 = RK4(t); 
-	fpreal sc = SC(t); 
-	fpreal dc = DC(t); 
-	fpreal sigma = SIGMA(t); 
-	fpreal bend = BEND(t); 
-	fpreal strech = STRECH(t); 
-	UT_Vector3F g = G(t); 
-	fpreal radius = RAD(t); 
-	fpreal remesh_res = REMESH_RES(t); 
-	size_t remesh_iter = REMESH_ITE(t); 
-	fpreal coll_frac = COLL_EPS(t); 
-	fpreal merge_frac = MERGE_EPS(t); 
-	size_t smooth = SMOOTH(t); 
-	fpreal vol_frac = VC_F(t); 
-	fpreal min_tri_ang = MIN_TRI_ANG(t); 
-	fpreal max_tri_ang = MAX_TRI_ANG(t); 
-	fpreal large_tri = LAR_TRI_ANG(t); 
-	fpreal min_tri_area = MIN_TRI_AREA(t); 
-	size_t t1_trans = T1_TRANS(t); 
-	fpreal t1_trans_frac = T1_PULL(t); 
-	size_t smooth_subdiv = LT_SM_SBD(t); 
+	// Parse options
+	Options::addStringOption("scene", "T1");
+	Options::addStringOption("load-dir", "");
+	Options::addDoubleOption("timestep", DT(t));
+	Options::addDoubleOption("simulation-time", 1.0);
+	Options::addBooleanOption("implicit-integration", IMP(t));
+	Options::addBooleanOption("pbd-implicit", PBD(t));
+	Options::addBooleanOption("RK4-velocity-integration", RK4(t));
+	Options::addDoubleOption("smoothing-coef", SC(t));
+	Options::addDoubleOption("damping-coef", DC(t));
+	Options::addDoubleOption("sigma", SIGMA(t));
+	Options::addDoubleOption("gravity", 0.0);
+	Options::addBooleanOption("fmmtl", false);
+	Options::addBooleanOption("looped", true);
+	Options::addDoubleOption("radius", RAD(t));
+	Options::addDoubleOption("density", 1.32e3);
+	Options::addDoubleOption("stretching", STRECH(t));
+	Options::addDoubleOption("bending", BEND(t));
+
+
+	Options::addDoubleOption("remeshing-resolution", REMESH_RES(t));
+	Options::addIntegerOption("remeshing-iterations", REMESH_ITE(t));
+
+
+	Options::addDoubleOption("lostopos-collision-epsilon-fraction", COLL_EPS(t));       // lostopos collision epsilon (fraction of mean edge length)
+	Options::addDoubleOption("lostopos-merge-proximity-epsilon-fraction", MERGE_EPS(t)); // lostopos merge proximity epsilon (fraction of mean edge length)
+	Options::addBooleanOption("lostopos-perform-smoothing", SMOOTH(t));               // whether or not to perform smoothing
+	Options::addDoubleOption("lostopos-max-volume-change-fraction", VC_F(t));       // maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
+	Options::addDoubleOption("lostopos-min-triangle-angle", MIN_TRI_ANG(t));                // min triangle angle (in degrees)
+	Options::addDoubleOption("lostopos-max-triangle-angle", MAX_TRI_ANG(t));              // max triangle angle (in degrees)
+	Options::addDoubleOption("lostopos-large-triangle-angle-to-split", LAR_TRI_ANG(t));   // threshold for large angles to be split
+	Options::addDoubleOption("lostopos-min-triangle-area-fraction", MIN_TRI_AREA(t));       // minimum allowed triangle area (fraction of mean edge length squared)
+	Options::addBooleanOption("lostopos-t1-transition-enabled", T1_TRANS(t));            // whether t1 is enabled
+	Options::addDoubleOption("lostopos-t1-pull-apart-distance-fraction", T1_PULL(t));   // t1 pull apart distance (fraction of mean edge legnth)
+	Options::addBooleanOption("lostopos-smooth-subdivision", LT_SM_SBD(t));              // whether to use smooth subdivision during remeshing
+	Options::addBooleanOption("lostopos-allow-non-manifold", true);               // whether to allow non-manifold geometry in the mesh
+	Options::addBooleanOption("lostopos-allow-topology-changes", true);           // whether to allow topology changes
+
+	Options::addIntegerOption("mesh-size-n", 2);
+	Options::addIntegerOption("mesh-size-m", 2);
+
+
+
+	// Create surface tracker
+
 
 	std::vector<LosTopos::Vec3d> vertices; 
 	std::vector<LosTopos::Vec3st> faces;
@@ -193,107 +215,66 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	std::vector<size_t> constrained_vertices;
 	std::vector<Vec3d> constrained_positions;
 
-	VS3D m_vs = VS3D(vertices, faces, face_labels, constrained_vertices, constrained_positions);
 
-	LosTopos::NonDestructiveTriMesh ndtm; 
-	ndtm.nv();
+	GA_Range pt_range = gdp->getPointRange();
+	if (pt_range.empty()) return error(); 
 
+	GA_RWHandleV3 pt_pos(gdp->getP());
+	GA_ROHandleI cons_pt(gdp, GA_ATTRIB_POINT, "const"); 
 
-	/*
-	UT_Vector2 res = RES(t); 
-	size_t spp = SPP(t);
-	size_t depth = DEPTH(t);
-	size_t vs = VS(t);
-	float sizex = SIZEX(t); 
-	UT_Vector3 color = COLOR(t); 
-	UT_Vector3 attenuation = ATTN(t); 
-	float density = DENSITY(t); 
-	float sdm = SDM(t); 
-	float maxdist = MAXDIST(t); 
-	float steprate = STEPRATE(t); 
+	for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
 	
-	
+		UT_Vector3F pos = pt_pos.get(it.getOffset());
+		vertices.push_back(LosTopos::Vec3d(pos[0], pos[1], pos[2]));
 
-	//Get inputs
-	
-	const GU_Detail *cam_gdp	= inputGeo(1);
-	const GU_Detail *prim_gdp	= inputGeo(2);
-	const GU_Detail *vol_gdp	= inputGeo(3);
-	const GU_Detail *light_gdp	= inputGeo(4);
+		if (cons_pt.isValid()) {
+			bool constrained = cons_pt.get(it.getOffset());
 
-	//Scene Preprocess
-	
-	
-	//Check Cam
-	size_t cam_pts = cam_gdp->getNumPoints();
-	if (cam_pts != 1) opError(OP_ERR_INVALID_SRC,"Camera input accepts a single point!!!"); 
-	
-	//Prepare Lights
-	GA_Range light_pt_range = light_gdp->getPointRange();
-	if (light_pt_range.isEmpty()) return error();
-	GA_ROHandleV3 light_pos(light_gdp->getP()); 
-	GA_ROHandleV3 light_color(light_gdp->findPointVectorAttrib("Cd"));
-	GA_ROHandleI light_type(light_gdp, GA_ATTRIB_POINT, "type");
-	
-	
-	UT_Array<Light> lights; 
-	for (GA_Iterator it(light_pt_range.begin()); !it.atEnd(); ++it) {
-		lights.append();
-		if (light_pos.isValid() && light_color.isValid()) {
-			lights[it.getOffset()].pos = light_pos.get(it.getOffset());
-			lights[it.getOffset()].color = light_color.get(it.getOffset());
+			if (constrained) {
+				constrained_vertices.push_back(*it);
+				constrained_positions.push_back(Vec3d(pos[0], pos[1], pos[2]));
+			}
 		}
 	}
 	
-	GA_RWHandleV3 Cd(gdp->addFloatTuple(GA_ATTRIB_PRIMITIVE, "Cd" , 3)); 
-	GA_RWHandleV3 P(gdp->addFloatTuple(GA_ATTRIB_PRIMITIVE, "pos", 3));
-	
-	GA_ROHandleV3 cam_h(cam_gdp, GA_ATTRIB_POINT, "P"); 
-	UT_Vector3F cam = cam_h.get(0); 
-
-	//GU_RayIntersect *isect = new GU_RayIntersect(prim_gdp);
-	
+	GA_OffsetArray neighbour_prims;
+	GA_Offset prim_offset;
 	GA_Primitive *prim;
-	
-	//Integrator *integrator = new Integrator;
-	//GU_RayInfo hit_info;
-	//hit_info.init(1e2F, 0.001F, GU_FIND_CLOSEST);
-	
-	int width = res.y();
-	int height = res.x();
+	GA_Offset goff;
+	GA_ROHandleI prim_class(gdp, GA_ATTRIB_PRIMITIVE, "class");
 
-
-	UT_Vector3F **pix = new UT_Vector3F*[width];
-
-
-	
-	for (int i = 0; i < width; i++) {
-		pix[i] = new UT_Vector3F[height];
-	}
-
-	for (int row = 0; row < height; row++) {
-		for (int col = 0; col < width; col++) {
-
-			pix[col][row] = UT_Vector3F(0, 0, 0);
-		}
-	}
-
-	//render(pix, width, height,spp, 30, 0.25, 16, 16);
-
-	/*
-	GA_Offset prim_offset; 
-	
-	for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) { 
+	for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
+		gdp->getEdgeAdjacentPolygons(neighbour_prims, prim_it.getOffset());
 		prim = gdp->getPrimitive(prim_it.getOffset());
-		UT_Vector3F color(0,0,0);
-		UT_Vector3 pos = P.get(prim_it.getOffset());
-		color = integrator->render(cam ,pos, prim_gdp, isect, hit_info, lights);
-		Cd.set(*prim_it, color);
-	}
-	
-	Cd.bumpDataId();
-	*/
+		pt_range = prim->getPointRange();
 
+		std::vector<GA_Offset> pt_offsets;
+
+		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
+			pt_offsets.push_back(*it);
+		}
+		 
+		faces.push_back(LosTopos::Vec3st(pt_offsets[2], pt_offsets[1], pt_offsets[0]));
+
+		if(prim_class.isValid()) face_labels.push_back(LosTopos::Vec2i(prim_class.get(prim_it.getOffset())+1, 0));
+		else face_labels.push_back(LosTopos::Vec2i(1, 0));
+	}
+
+	VS3D *m_vs = new VS3D(vertices, faces, face_labels, constrained_vertices, constrained_positions);
+
+	m_vs->step(DT(t));
+
+
+	LosTopos::SurfTrack &st =  *(m_vs->surfTrack());
+	vertices = st.get_positions();
+
+	pt_range = gdp->getPointRange();
+	for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
+		LosTopos::Vec3d new_pos = vertices[*it];
+		pt_pos.set(it.getOffset(), UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
+	}
+
+	pt_pos.bumpDataId();
 
 	return error();
 }
