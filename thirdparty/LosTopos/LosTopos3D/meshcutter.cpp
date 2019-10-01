@@ -451,7 +451,7 @@ bool MeshCutter::perform_pull_apart(const std::vector<size_t>& boundary_verts, c
     
     //m_surf.m_mesh_change_history.push_back(history);
     
-    if ( m_surf.m_collision_safety && m_surf.m_collision_safety_asserts)
+    if ( m_surf.m_collision_safety )
     {
         m_surf.assert_mesh_is_intersection_free(false);
     }

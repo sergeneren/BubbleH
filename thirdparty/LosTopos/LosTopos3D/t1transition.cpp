@@ -51,8 +51,8 @@ T1Transition::T1Transition(SurfTrack & surf, VelocityFieldCallback * vfc, bool r
 m_remesh_boundaries(remesh_boundaries),
 m_pull_apart_distance(0.002),
 m_pull_apart_tendency_threshold(0),
-m_velocity_field_callback(vfc),
-m_surf(surf)
+m_surf(surf),
+m_velocity_field_callback(vfc)
 {
     
 }
@@ -461,6 +461,12 @@ bool T1Transition::t1_pass()
             continue;
         }
         
+        // all clear, now perform the pull-apart operation
+        
+        void * data = NULL;
+        if (m_surf.m_mesheventcallback)
+            m_surf.m_mesheventcallback->pre_t1(m_surf, xj, &data);
+
         // pull apart
         std::vector<size_t> verts_to_delete;
         std::vector<Vec3d> verts_to_create;
@@ -526,7 +532,7 @@ bool T1Transition::t1_pass()
         pop_occurred = true;
         
         if (m_surf.m_mesheventcallback)
-            m_surf.m_mesheventcallback->t1(m_surf, xj);
+            m_surf.m_mesheventcallback->post_t1(m_surf, xj, a, b, data);
         
     }
     
@@ -557,9 +563,9 @@ double T1Transition::try_pull_vertex_apart_using_surface_tension(size_t xj, int 
         size_t other_edge = static_cast<size_t>(~0);
         for (l = 0; l < 3; l++)
         {
-            if (mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][(int)l]][0] != xj &&
-               mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][(int)l]][1] != xj)
-               other_edge = mesh.m_triangle_to_edge_map[triangle][(int)l];
+            if (mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][l]][0] != xj &&
+                mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][l]][1] != xj)
+                other_edge = mesh.m_triangle_to_edge_map[triangle][l];
         }
         assert(other_edge < mesh.ne());
         size_t v0 = mesh.m_edges[other_edge][0];
@@ -587,10 +593,10 @@ double T1Transition::try_pull_vertex_apart_using_surface_tension(size_t xj, int 
     Vec3d centroidB(0, 0, 0);
     for (size_t i = 0; i < vertsA.size(); i++)
         centroidA += vertsA[i];
-    centroidA /= (double)vertsA.size();
+    centroidA /= vertsA.size();
     for (size_t i = 0; i < vertsB.size(); i++)
         centroidB += vertsB[i];
-    centroidB /= (double)vertsB.size();
+    centroidB /= vertsB.size();
     
     // the pull apart direction is along the line between the two centroids
     pull_apart_direction = (centroidA - centroidB);
@@ -675,9 +681,9 @@ double T1Transition::try_pull_vertex_apart_using_velocity_field(size_t xj, int A
         size_t other_edge = static_cast<size_t>(~0);
         for (l = 0; l < 3; l++)
         {
-            if (mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][(int)l]][0] != xj &&
-               mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][(int)l]][1] != xj)
-               other_edge = mesh.m_triangle_to_edge_map[triangle][(int)l];
+            if (mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][l]][0] != xj &&
+                mesh.m_edges[mesh.m_triangle_to_edge_map[triangle][l]][1] != xj)
+                other_edge = mesh.m_triangle_to_edge_map[triangle][l];
         }
         assert(other_edge < mesh.ne());
         size_t v0 = mesh.m_edges[other_edge][0];
@@ -705,10 +711,10 @@ double T1Transition::try_pull_vertex_apart_using_velocity_field(size_t xj, int A
     Vec3d centroidB(0, 0, 0);
     for (size_t i = 0; i < vertsA.size(); i++)
         centroidA += vertsA[i];
-    centroidA /= (double)vertsA.size();
+    centroidA /= vertsA.size();
     for (size_t i = 0; i < vertsB.size(); i++)
         centroidB += vertsB[i];
-    centroidB /= (double)vertsB.size();
+    centroidB /= vertsB.size();
     
     // the pull apart direction is along the line between the two centroids
     pull_apart_direction = (centroidA - centroidB);
@@ -761,7 +767,7 @@ void T1Transition::triangulate_popped_vertex(size_t xj, int A, int B, size_t a, 
         size_t edge2 = static_cast<size_t>(~0);
         for (l = 0; l < 3; l++)
         {
-            size_t e = mesh.m_triangle_to_edge_map[triangle][(int)l];
+            size_t e = mesh.m_triangle_to_edge_map[triangle][l];
             if (mesh.m_edges[e][0] != xj && mesh.m_edges[e][1] != xj)
                 edge2 = e;
         }

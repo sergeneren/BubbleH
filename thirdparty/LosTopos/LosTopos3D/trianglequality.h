@@ -47,12 +47,6 @@ inline double circumcircle_radius( const Vec3d& a, const Vec3d& b, const Vec3d& 
 inline void triangle_angles( const Vec3d& a, const Vec3d& b, const Vec3d& c, 
                             double& angle_a, double& angle_b, double& angle_c );
 
-/// Each angle's cosine within the triangle 
-///
-inline void triangle_angle_cosines(const Vec3d& a, const Vec3d& b, const Vec3d& c,
-   double& cos_angle_a, double& cos_angle_b, double& cos_angle_c);
-
-
 /// Minimum angle within the triangle (in radians)
 ///
 inline double min_triangle_angle( const Vec3d& a, const Vec3d& b, const Vec3d& c );
@@ -220,45 +214,6 @@ inline void triangle_angles(const Vec3d& a, const Vec3d& b, const Vec3d& c,
    assert(angle_c == angle_c);
 }
 
-
-inline void triangle_angle_cosines(const Vec3d& a, const Vec3d& b, const Vec3d& c,
-   double& cos_angle_a, double& cos_angle_b, double& cos_angle_c)
-{
-
-   //Handle some degeneracies
-   if (b == a) {
-      cos_angle_a = 0;
-      cos_angle_b = 0;
-      cos_angle_c = 1;
-   }
-   if (c == a){
-      cos_angle_a = 0;
-      cos_angle_b = 1;
-      cos_angle_c = 0;
-   }
-   if (b == c){
-      cos_angle_a = 1;
-      cos_angle_b = 0;
-      cos_angle_c = 0;
-   }
-
-   Vec3d ba_norm = normalized(b - a);
-   Vec3d ca_norm = normalized(c - a);
-   Vec3d cb_norm = normalized(c - b);
-
-   cos_angle_a = std::max(-1.0, std::min(1.0, dot(ba_norm, ca_norm)));
-   cos_angle_b = std::max(-1.0, std::min(1.0, dot(-ba_norm, cb_norm)));
-   cos_angle_c = std::max(-1.0, std::min(1.0, dot(-cb_norm, -ca_norm)));
-
-   //cos_angle_a = std::max(-1.0, std::min(1.0, dot(normalized(b - a), normalized(c - a))));
-   //cos_angle_b = std::max(-1.0, std::min(1.0, dot(normalized(a - b), normalized(c - b))));
-   //cos_angle_c = std::max(-1.0, std::min(1.0, dot(normalized(b - c), normalized(a - c))));
-   assert(cos_angle_a == cos_angle_a);
-   assert(cos_angle_b == cos_angle_b);
-   assert(cos_angle_c == cos_angle_c);
-}
-
-
 // ---------------------------------------------------------
 ///
 /// Compute the minimum "triangle angle", defined as an interior angle at a vertex.
@@ -283,34 +238,6 @@ inline double max_triangle_angle( const Vec3d& a, const Vec3d& b, const Vec3d& c
     double angle_a, angle_b, angle_c;
     triangle_angles( a, b, c, angle_a, angle_b, angle_c );
     return max( angle_a, angle_b, angle_c );   
-}
-
-// ---------------------------------------------------------
-///
-/// Compute the minimum and maximum "triangle angle", defined as an interior angle at a vertex.
-///
-// ---------------------------------------------------------
-
-inline void min_and_max_triangle_angle(const Vec3d& a, const Vec3d& b, const Vec3d& c, Vec2d& minmax)
-{
-   double angle_a, angle_b, angle_c;
-   triangle_angles(a, b, c, angle_a, angle_b, angle_c);
-   minmax[0] = min(angle_a, angle_b, angle_c);
-   minmax[1] = max(angle_a, angle_b, angle_c);
-}
-
-// ---------------------------------------------------------
-///
-/// Compute the minimum and maximum "triangle angle cosines", defined as a cosine of interior angle at a vertex.
-///
-// ---------------------------------------------------------
-
-inline void min_and_max_triangle_angle_cosines(const Vec3d& a, const Vec3d& b, const Vec3d& c, Vec2d& minmax)
-{
-   double angle_a, angle_b, angle_c;
-   triangle_angle_cosines(a, b, c, angle_a, angle_b, angle_c);
-   minmax[0] = min(angle_a, angle_b, angle_c);
-   minmax[1] = max(angle_a, angle_b, angle_c);
 }
 
 

@@ -1044,7 +1044,7 @@ bool write_ribfile(const NonDestructiveTriMesh &mesh, const std::vector<float> &
    fprintf( output, "]\n" );
    fprintf( output, " [ " );
    for(unsigned int i=0; i<mesh.m_tris.size(); ++i){
-      fprintf( output, " %d %d %d ", mesh.m_tris[i][0], mesh.m_tris[i][1], mesh.m_tris[i][2] );
+      fprintf( output, " %ld %ld %ld ", mesh.m_tris[i][0], mesh.m_tris[i][1], mesh.m_tris[i][2] );
       if(i%6==5 && i!=mesh.m_tris.size()-1) fprintf( output, "\n" ); 
    }
    fprintf( output, "]\n" );
@@ -1084,7 +1084,7 @@ bool output_shadow_rib( Gluvi::Target3D& light, const std::vector<Vec3d>& positi
    
 
    
-   if( !out )
+   if( !out.is_open() )
    {
       return false;
    }
@@ -1182,7 +1182,7 @@ bool output_rib( const std::vector<Vec3d>& positions, const NonDestructiveTriMes
    
    delete[] filename;
    
-   if( !out )
+   if( !out.is_open() )
    {
       return false;
    }

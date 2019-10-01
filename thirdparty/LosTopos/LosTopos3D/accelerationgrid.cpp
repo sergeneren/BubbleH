@@ -16,6 +16,7 @@
 
 #include <array3.h>
 #include <limits>
+#include <util.h>
 #include <vec.h>
 #include <vector>
 #include <wallclocktime.h>
@@ -148,14 +149,13 @@ void AccelerationGrid::set( const Vec3st& dims, const Vec3d& xmin, const Vec3d& 
     }
     
     clear();
+    
     m_cells.resize((int)dims[0], (int)dims[1], (int)dims[2]);    
-    
-    //zero out the cells
-    std::fill(m_cells.a.begin(), m_cells.a.end(), (std::vector<size_t>*)0);
-    
+    for(size_t i = 0; i < m_cells.a.size(); i++)
+    {
+        m_cells.a[i] = 0;
+    }   
 }
-
-
 
 // --------------------------------------------------------
 ///
@@ -166,17 +166,14 @@ void AccelerationGrid::set( const Vec3st& dims, const Vec3d& xmin, const Vec3d& 
 void AccelerationGrid::boundstoindices(const Vec3d& xmin, const Vec3d& xmax, Vec3i& xmini, Vec3i& xmaxi)
 {
     
-   //These used to have Floor calls too, but I decided they were superfluous here, since the indices are
-   //always non-negative so no weird cases should arise...
-   //If we used a spatial grid with negative cell indices allowed, then we'd be in trouble!! Careful!
-   xmini[0] = (int)((xmin[0] - m_gridxmin[0]) * m_invcellsize[0]);
-   xmini[1] = (int)((xmin[1] - m_gridxmin[1]) * m_invcellsize[1]);
-   xmini[2] = (int)((xmin[2] - m_gridxmin[2]) * m_invcellsize[2]);
-
-   xmaxi[0] = (int)((xmax[0] - m_gridxmin[0]) * m_invcellsize[0]);
-   xmaxi[1] = (int)((xmax[1] - m_gridxmin[1]) * m_invcellsize[1]);
-   xmaxi[2] = (int)((xmax[2] - m_gridxmin[2]) * m_invcellsize[2]); 
-   
+    xmini[0] = (int) std::floor((xmin[0] - m_gridxmin[0]) * m_invcellsize[0]);
+    xmini[1] = (int) std::floor((xmin[1] - m_gridxmin[1]) * m_invcellsize[1]);
+    xmini[2] = (int) std::floor((xmin[2] - m_gridxmin[2]) * m_invcellsize[2]);
+    
+    xmaxi[0] = (int) std::floor((xmax[0] - m_gridxmin[0]) * m_invcellsize[0]);
+    xmaxi[1] = (int) std::floor((xmax[1] - m_gridxmin[1]) * m_invcellsize[1]);
+    xmaxi[2] = (int) std::floor((xmax[2] - m_gridxmin[2]) * m_invcellsize[2]);
+    
     if(xmini[0] < 0) xmini[0] = 0;
     if(xmini[1] < 0) xmini[1] = 0;
     if(xmini[2] < 0) xmini[2] = 0;
@@ -184,7 +181,7 @@ void AccelerationGrid::boundstoindices(const Vec3d& xmin, const Vec3d& xmax, Vec
     if(xmaxi[0] < 0) xmaxi[0] = 0;
     if(xmaxi[1] < 0) xmaxi[1] = 0;
     if(xmaxi[2] < 0) xmaxi[2] = 0;
-   
+    
     assert( m_cells.ni < INT_MAX );
     assert( m_cells.nj < INT_MAX );
     assert( m_cells.nk < INT_MAX );
@@ -454,15 +451,12 @@ void AccelerationGrid::clear()
         {
             delete cell;
             cell = 0;
+           //cell->clear(); //don't clear the memory, since we likely want to reuse it.
         }
     }
     
     //clear the entries for each element, but don't clear the overall vector itself, since we
     //don't want to reallocate memory for the individual vectors.
-    
-    //TODO Maybe we intermittently DO want to clear out the whole grid's memory,
-    //since unused but still allocated blocks can begin taking up a ton of space!
-
     //m_elementidxs.clear();
     for(size_t i = 0; i < m_elementidxs.size(); ++i) { 
        m_elementidxs[i].clear();
@@ -485,6 +479,15 @@ void AccelerationGrid::clear()
 
 void AccelerationGrid::find_overlapping_elements( const Vec3d& xmin, const Vec3d& xmax, std::vector<size_t>& results ) 
 {
+    if(m_lastquery == std::numeric_limits<unsigned int>::max())
+    {
+        std::vector<unsigned int>::iterator iter = m_elementquery.begin();
+        for( ; iter != m_elementquery.end(); ++iter )
+        {
+            *iter = 0;
+        }
+        m_lastquery = 0;
+    }
     
     ++m_lastquery;
     
@@ -502,7 +505,6 @@ void AccelerationGrid::find_overlapping_elements( const Vec3d& xmin, const Vec3d
                 
                 if(cell)
                 {
-
                     for( std::vector<size_t>::const_iterator citer = cell->begin(); citer != cell->end(); ++citer)
                     {
                         size_t oidx = *citer;
@@ -533,7 +535,6 @@ void AccelerationGrid::find_overlapping_elements( const Vec3d& xmin, const Vec3d
         }
     }
 }
-
 
 }
 

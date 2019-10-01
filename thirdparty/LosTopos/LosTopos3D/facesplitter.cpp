@@ -457,7 +457,11 @@ bool FaceSplitter::split_face( size_t face, size_t& result_vertex, bool specify_
     // --------------
     
     // Do the actual splitting
-    
+
+    void * data = NULL;
+    if (m_surf.m_mesheventcallback)
+        m_surf.m_mesheventcallback->pre_facesplit(m_surf, face, &data);
+
     Vec3d  new_vertex_mass = Vec3d(1, 1, 1);
     if (m_surf.vertex_is_solid(vertex_a, 0) && m_surf.vertex_is_solid(vertex_b, 0) && m_surf.vertex_is_solid(vertex_c, 0)) new_vertex_mass[0] = std::numeric_limits<double>::infinity();
     if (m_surf.vertex_is_solid(vertex_a, 1) && m_surf.vertex_is_solid(vertex_b, 1) && m_surf.vertex_is_solid(vertex_c, 1)) new_vertex_mass[1] = std::numeric_limits<double>::infinity();
@@ -519,7 +523,7 @@ bool FaceSplitter::split_face( size_t face, size_t& result_vertex, bool specify_
     m_surf.m_mesh_change_history.push_back(facesplit);
     
     if (m_surf.m_mesheventcallback)
-        m_surf.m_mesheventcallback->facesplit(m_surf, face);
+        m_surf.m_mesheventcallback->post_facesplit(m_surf, face, vertex_d, data);
     
     //return output vertex
     result_vertex = vertex_d;

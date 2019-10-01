@@ -235,7 +235,7 @@ bool MeshPincher::pull_apart_vertex( size_t vertex_index, const std::vector< Tri
     }
     
     
-    if ( m_surf.m_collision_safety && m_surf.m_collision_safety_asserts )
+    if ( m_surf.m_collision_safety )
     {
         m_surf.assert_mesh_is_intersection_free(false);
     }

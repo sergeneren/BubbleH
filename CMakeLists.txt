@@ -27,7 +27,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LosTopos/LosTopos3D)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LosTopos/common)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LosTopos/common/tunicate)
-
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/LosTopos/common/newsparse)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_subdirectory (source)

@@ -142,10 +142,6 @@ struct SurfTrackInitializationParameters
     ///
     bool m_collision_safety;
     
-    /// Whether to employ extra asserts to verify collision-safety
-    ///
-    bool m_collision_safety_asserts;
-
     /// Whether to allow changes in topology
     ///
     bool m_allow_topology_changes;
@@ -250,8 +246,8 @@ struct SortableProximity
    SortableProximity( size_t face, size_t vertex, double sep_dist, bool isFaceVert ) : 
       m_index0(face),
       m_index1(vertex), 
-      m_length(sep_dist),
-      m_face_vert_proximity(isFaceVert)
+      m_face_vert_proximity(isFaceVert),
+      m_length(sep_dist)
    {
    }
 
@@ -497,6 +493,9 @@ public:
     /// Remove deleted vertices and triangles from the mesh data structures
     ///
     void defrag_mesh();
+    void defrag_mesh_from_scratch(std::vector<size_t> & vertices_to_be_mapped);
+    void defrag_mesh_from_scratch_manual(std::vector<size_t> & vertices_to_be_mapped);
+    void defrag_mesh_from_scratch_copy(std::vector<size_t> & vertices_to_be_mapped);
 
     /// Check for labels with -1 as their value, or the same label on both sides.
     /// 
@@ -618,14 +617,6 @@ public:
     ///
     double m_max_triangle_angle;
     
-    /// Don't create triangles with angles less than this.  Use cosine so we can just compare to dot product. Should match angles above.
-    ///
-    double m_min_angle_cosine;
-
-    /// Don't create triangles with angles greater than this. Use cosine so we can just compare to dot product. Should match angles above.
-    ///
-    double m_max_angle_cosine;
-
     /// Some weaker bounds to use in aggressive mode.
     ///
     double m_hard_min_edge_len, m_hard_max_edge_len;
@@ -691,14 +682,27 @@ public:
     class MeshEventCallback
     {
     public:
-        virtual void collapse(const SurfTrack & st, size_t e) { }
-        virtual void split(const SurfTrack & st, size_t e) { }
-        virtual void flip(const SurfTrack & st, size_t e) { }
-        virtual void t1(const SurfTrack & st, size_t v) { }
-        virtual void facesplit(const SurfTrack & st, size_t f) { }
-        virtual void snap(const SurfTrack & st, size_t v0, size_t v1) { }
-        virtual void smoothing(const SurfTrack & st) { }
-        virtual void smooth(const SurfTrack& st, size_t v) { }
+        virtual void pre_collapse(const SurfTrack & st, size_t e, void ** data) { }
+        virtual void post_collapse(const SurfTrack & st, size_t e, size_t merged_vertex, void * data) { }
+
+        virtual void pre_split(const SurfTrack & st, size_t e, void ** data) { }
+        virtual void post_split(const SurfTrack & st, size_t e, size_t new_vertex, void * data) { }
+
+        virtual void pre_flip(const SurfTrack & st, size_t e, void ** data) { }
+        virtual void post_flip(const SurfTrack & st, size_t e, void * data) { }
+
+        virtual void pre_t1(const SurfTrack & st, size_t v, void ** data) { }
+        virtual void post_t1(const SurfTrack & st, size_t v, size_t a, size_t b, void * data) { }
+
+        virtual void pre_facesplit(const SurfTrack & st, size_t f, void ** data) { }
+        virtual void post_facesplit(const SurfTrack & st, size_t f, size_t new_vertex, void * data) { }
+
+        virtual void pre_snap(const SurfTrack & st, size_t v0, size_t v1, void ** data) { }
+        virtual void post_snap(const SurfTrack & st, size_t v_kept, size_t v_deleted, void * data) { }
+
+        virtual void pre_smoothing(const SurfTrack & st, void ** data) { }
+        virtual void post_smoothing(const SurfTrack & st, void * data) { }
+
         virtual std::ostream & log() { return std::cout; }
     };
     
@@ -732,11 +736,11 @@ public:
     ///    
     std::vector<TriangleUpdateEvent> m_triangle_change_history;
     
-    /// Map of triangle indices, mapping pre-defrag triangle indices to post-defrag indices
+    /// Map of triangle indices, mapping pre-defrag triangle indices to post-defrag indices (deprecated; see defrag_mesh())
     ///
     std::vector<Vec2st> m_defragged_triangle_map;
     
-    /// Map of vertex indices, mapping pre-defrag vertex indices to post-defrag indices
+    /// Map of vertex indices, mapping pre-defrag vertex indices to post-defrag indices (deprecated; see defrag_mesh())
     ///
     std::vector<Vec2st> m_defragged_vertex_map;
 

@@ -34,6 +34,7 @@
 //Local
 
 #include "SOP_bubble.h"
+#include "VS3D.h"
 
 //Houdini
 #include <GU/GU_Detail.h>
@@ -70,6 +71,8 @@ static PRM_Name param_names[] = {
 
 	PRM_Name("dt"			, "time step"),
 	PRM_Name("implicit"		, "Implicit Integration"),
+	PRM_Name("pbd_implicit"	, "PBD Integration"),
+	PRM_Name("rk4"			, "RK4 Integration"),
 	PRM_Name("sc"			, "Smoothing Coefficient"),
 	PRM_Name("dc"			, "Damping Coefficient"),
 	PRM_Name("sigma"		, "Sigma"),
@@ -95,7 +98,7 @@ static PRM_Name param_names[] = {
 static PRM_Name         switcherName("shakeswitcher");
 
 static PRM_Default      switcher[] = {
-	PRM_Default(9, "Simulation"),   
+	PRM_Default(11, "Simulation"),   
 	PRM_Default(2, "Remeshing"),
 	PRM_Default(11, "LT Surface"),
 };
@@ -107,26 +110,28 @@ PRM_Template SOP_bubble::myTemplateList[] = {
 
 	PRM_Template(PRM_FLT, 1 , &param_names[0], PRMpointOneDefaults),		// dt
 	PRM_Template(PRM_TOGGLE, 1 , &param_names[1], PRMzeroDefaults),			// implicit
-	PRM_Template(PRM_FLT, 1 , &param_names[2], PRMoneDefaults),				// sc
-	PRM_Template(PRM_FLT, 1 , &param_names[3], PRMoneDefaults),				// dc
-	PRM_Template(PRM_FLT, 1 , &param_names[4], PRMoneDefaults),				// sigma
-	PRM_Template(PRM_FLT, 1 , &param_names[5], PRM100Defaults),				// bend
-	PRM_Template(PRM_FLT, 1 , &param_names[6], PRM100Defaults),				// strech
-	PRM_Template(PRM_FLT, 3 , &param_names[7], PRMzeroDefaults),			// g
-	PRM_Template(PRM_FLT, 1 , &param_names[8], PRMpointOneDefaults),		// radius
-	PRM_Template(PRM_FLT, 1 , &param_names[9], PRMpointOneDefaults),		// remesh res
-	PRM_Template(PRM_INT, 1 , &param_names[10], PRMtwoDefaults),			// remesh iter
-	PRM_Template(PRM_FLT, 1 , &param_names[11], PRMpointOneDefaults),		// Collision Epsilon Fraction
-	PRM_Template(PRM_FLT, 1 , &param_names[12], PRMpointOneDefaults),		// Merge Epsilon Fraction
-	PRM_Template(PRM_TOGGLE, 1 , &param_names[13], PRMzeroDefaults),		// Perform Smoothing
-	PRM_Template(PRM_FLT, 1 , &param_names[14], PRMpointOneDefaults),		// Volume Change Fraction
-	PRM_Template(PRM_FLT, 1 , &param_names[15], PRMthreeDefaults),			// Min Triangle Angle
-	PRM_Template(PRM_FLT, 1 , &param_names[16], PRM180Defaults),			// Max Triangle Angle
-	PRM_Template(PRM_FLT, 1 , &param_names[17], PRM180Defaults),			// Large Triangle Angle
-	PRM_Template(PRM_FLT, 1 , &param_names[18], PRMpointOneDefaults),		// Min Triangle Area
-	PRM_Template(PRM_TOGGLE, 1 , &param_names[19], PRMoneDefaults),			// T1 Transition
-	PRM_Template(PRM_FLT, 1 , &param_names[20], PRMpointOneDefaults),		// T1 Pull Apart Distance Fraction
-	PRM_Template(PRM_TOGGLE, 1 , &param_names[21], PRMzeroDefaults),		// Smooth Subdivision
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[2], PRMzeroDefaults),			// pbd
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[3], PRMzeroDefaults),			// rk4
+	PRM_Template(PRM_FLT, 1 , &param_names[4], PRMoneDefaults),				// sc
+	PRM_Template(PRM_FLT, 1 , &param_names[5], PRMoneDefaults),				// dc
+	PRM_Template(PRM_FLT, 1 , &param_names[6], PRMoneDefaults),				// sigma
+	PRM_Template(PRM_FLT, 1 , &param_names[7], PRM100Defaults),				// bend
+	PRM_Template(PRM_FLT, 1 , &param_names[8], PRM100Defaults),				// strech
+	PRM_Template(PRM_FLT, 3 , &param_names[9], PRMzeroDefaults),			// g
+	PRM_Template(PRM_FLT, 1 , &param_names[10], PRMpointOneDefaults),		// radius
+	PRM_Template(PRM_FLT, 1 , &param_names[11], PRMpointOneDefaults),		// remesh res
+	PRM_Template(PRM_INT, 1 , &param_names[12], PRMtwoDefaults),			// remesh iter
+	PRM_Template(PRM_FLT, 1 , &param_names[13], PRMpointOneDefaults),		// Collision Epsilon Fraction
+	PRM_Template(PRM_FLT, 1 , &param_names[14], PRMpointOneDefaults),		// Merge Epsilon Fraction
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[15], PRMzeroDefaults),		// Perform Smoothing
+	PRM_Template(PRM_FLT, 1 , &param_names[16], PRMpointOneDefaults),		// Volume Change Fraction
+	PRM_Template(PRM_FLT, 1 , &param_names[17], PRMthreeDefaults),			// Min Triangle Angle
+	PRM_Template(PRM_FLT, 1 , &param_names[18], PRM180Defaults),			// Max Triangle Angle
+	PRM_Template(PRM_FLT, 1 , &param_names[19], PRM180Defaults),			// Large Triangle Angle
+	PRM_Template(PRM_FLT, 1 , &param_names[20], PRMpointOneDefaults),		// Min Triangle Area
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[21], PRMoneDefaults),			// T1 Transition
+	PRM_Template(PRM_FLT, 1 , &param_names[22], PRMpointOneDefaults),		// T1 Pull Apart Distance Fraction
+	PRM_Template(PRM_TOGGLE, 1 , &param_names[23], PRMzeroDefaults),		// Smooth Subdivision
 	PRM_Template()
 };
 
@@ -159,6 +164,8 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 
 	fpreal dt = DT(t); 
 	size_t imp = IMP(t); 
+	size_t pbd = PBD(t);
+	size_t rk4 = RK4(t); 
 	fpreal sc = SC(t); 
 	fpreal dc = DC(t); 
 	fpreal sigma = SIGMA(t); 
@@ -180,8 +187,16 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	fpreal t1_trans_frac = T1_PULL(t); 
 	size_t smooth_subdiv = LT_SM_SBD(t); 
 
+	std::vector<LosTopos::Vec3d> vertices; 
+	std::vector<LosTopos::Vec3st> faces;
+	std::vector<LosTopos::Vec2i> face_labels;
+	std::vector<size_t> constrained_vertices;
+	std::vector<Vec3d> constrained_positions;
 
+	VS3D m_vs = VS3D(vertices, faces, face_labels, constrained_vertices, constrained_positions);
 
+	LosTopos::NonDestructiveTriMesh ndtm; 
+	ndtm.nv();
 
 
 	/*

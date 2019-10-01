@@ -6,11 +6,7 @@ namespace LosTopos {
 
 static void print_hex( double d )
 {
-#ifdef _MSC_VER
     std::ios_base::fmtflags originalFlags = std::cout.flags();
-#else
-    auto originalFlags = std::cout.flags();
-#endif
     
     assert( sizeof(double) == 2 * sizeof(long int) );
     

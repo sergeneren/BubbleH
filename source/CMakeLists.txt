@@ -8,8 +8,8 @@ list( APPEND CMAKE_PREFIX_PATH ${HOUDINI_CMAKE_DIR})
 # Registers an imported library target named 'Houdini'.
 find_package( Houdini)
 
-file (GLOB_RECURSE Headers "${SOURCE_DIR}/*.h" )
-file (GLOB_RECURSE Sources "${SOURCE_DIR}/*.cpp" )
+file (GLOB Headers "${SOURCE_DIR}/*.h" )
+file (GLOB Sources "${SOURCE_DIR}/*.cpp" )
 
 add_library(BubbleH SHARED ${Headers} ${Sources})
 target_link_libraries( BubbleH Houdini LosTopos)

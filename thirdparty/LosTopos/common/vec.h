@@ -3,7 +3,7 @@
 
 #include <cassert>
 #include <cmath>
-
+#include <hashtable.h>
 #include <iostream>
 #include <util.h>
 

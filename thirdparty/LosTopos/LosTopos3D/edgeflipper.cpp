@@ -16,8 +16,8 @@
 #include <runstats.h>
 #include <surftrack.h>
 #include <trianglequality.h>
-#include <Eigen/Core>
-#include <Eigen/Eigenvalues>
+
+#include <lapack_wrapper.h>
 
 // ---------------------------------------------------------
 //  Extern globals
@@ -448,6 +448,10 @@ bool EdgeFlipper::flip_edge( size_t edge,
     
     // Okay, now do the actual operation
     
+    void * data = NULL;
+    if (m_surf.m_mesheventcallback)
+        m_surf.m_mesheventcallback->pre_flip(m_surf, edge, &data);
+
     // Start history log
     MeshUpdateEvent flip(MeshUpdateEvent::EDGE_FLIP);
     flip.m_v0 = edge_vertices[0];
@@ -508,8 +512,10 @@ bool EdgeFlipper::flip_edge( size_t edge,
     
     m_surf.m_mesh_change_history.push_back(flip);
     
+    m_surf.trim_degeneracies( m_surf.m_dirty_triangles );
+
     if (m_surf.m_mesheventcallback)
-        m_surf.m_mesheventcallback->flip(m_surf, edge);
+        m_surf.m_mesheventcallback->post_flip(m_surf, edge, data);
     
     return true;
     
@@ -566,24 +572,16 @@ bool EdgeFlipper::is_Delaunay_anisotropic( size_t edge, size_t tri0, size_t tri1
     //sum them to get a combined quadric tensor A for the patch
     Mat33d A = mat0 + mat1 + mat2 + mat3;
     
-    Eigen::Matrix3d A_Eigen;
-    A_Eigen << A(0, 0), A(0, 1), A(0, 2), A(1, 0), A(1, 1), A(1, 2), A(2, 0), A(2, 1), A(2, 2);
-
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es;
-    es.compute(A_Eigen, Eigen::ComputeEigenvectors);
-    if (es.info() != Eigen::Success) assert(0);
-    auto eigenvalues_Eigen = es.eigenvalues();
-    auto eigenvectors_Eigen = es.eigenvectors();
-
-    double eig_max = std::max(eigenvalues_Eigen[0], std::max(eigenvalues_Eigen[1], eigenvalues_Eigen[2]));
-    double eig_min = std::min(eigenvalues_Eigen[0], std::min(eigenvalues_Eigen[1], eigenvalues_Eigen[2]));
-    double eig_mid = std::max(min(eigenvalues_Eigen[0], eigenvalues_Eigen[1]), min(max(eigenvalues_Eigen[0], eigenvalues_Eigen[1]), eigenvalues_Eigen[2]));
-
+    //perform eigen decomposition to determine the eigen vectors/values
+    double eigenvalues[3];
+    double work[9];
+    int info = ~0, n = 3, lwork = 9;
+    LAPACK::get_eigen_decomposition( &n, A.a, &n, eigenvalues, work, &lwork, &info );
+    
     //Note that this returns the eigenvalues in ascending order, as opposed to descending order described by Jiao et al.
     
     //compute the metric tensor M_Q, with Q = Identity
-    //Mat22d M( eigenvalues[1] / eigenvalues[2], 0, 0, eigenvalues[0] / eigenvalues[2]);
-    Mat22d M(eig_mid / eig_max, 0, 0, eig_min / eig_max);
+    Mat22d M( eigenvalues[1] / eigenvalues[2], 0, 0, eigenvalues[0] / eigenvalues[2]);
     
     //clamp the eigenvalues for safety
     M(0,0) = clamp(M(0,0), 0.005, 0.07);
@@ -662,12 +660,7 @@ bool EdgeFlipper::flip_pass( )
     //
     // Each "pass" is once over the entire set of edges (ignoring edges created during the current pass)
     //
-
-    //this is a cache to store incident edge-counts at vertices, to save on looking up the neighborhood
-    //it is indexed per vertex, and it stores the number of edges counts and a corresponding region pair
-    //consistent with a call to "edge_count_bordering_region_pair" (which is a bit costly)
-    std::vector<std::pair<int, Vec2i>> edge_counts_by_region_pair(m_surf.get_num_vertices(), std::make_pair(-1, Vec2i(-1,-1)));
-
+    
     while ( flip_occurred && num_flip_passes++ < MAX_NUM_FLIP_PASSES )
     {
         if ( m_surf.m_verbose )
@@ -702,7 +695,6 @@ bool EdgeFlipper::flip_pass( )
             else if ( m_mesh.m_edge_to_triangle_map[i].size() == 4 )
             {
                 // non manifold edge: disable flipping
-               //TODO is this good or bad?
                 continue;
                 
                 triangle_a = m_mesh.m_edge_to_triangle_map[i][0];
@@ -773,20 +765,16 @@ bool EdgeFlipper::flip_pass( )
                 double angle1 = acos( dot(off2, off3) / (m2*m3) );
                 
                 if(m_surf.m_aggressive_mode) {
-                    
-                    Vec2d angles_cos0, angles_cos1;
-                    min_and_max_triangle_angle_cosines(pos_vert_0, pos_vert_1, pos_3rd_0, angles_cos0);
-                    min_and_max_triangle_angle_cosines(pos_vert_0, pos_vert_1, pos_3rd_1, angles_cos1);
-                    double min_cos, max_cos;
-                    min_cos = min(angles_cos0[0], angles_cos1[0]);
-                    max_cos = max(angles_cos0[1], angles_cos1[1]);
-
-                    //skip processing any triangles that don't have fairly bad angles.
-                    bool angles_are_fine_cos = min_cos > m_surf.m_min_angle_cosine || max_cos < m_surf.m_max_angle_cosine;
-
-                    if (angles_are_fine_cos)
+                    //skip any triangles that don't have fairly bad angles.
+                    double min_angle = min_triangle_angle(pos_vert_0, pos_vert_1, pos_3rd_0);
+                    min_angle = min(min_angle, min_triangle_angle(pos_vert_0, pos_vert_1, pos_3rd_1));
+                    if(min_angle > m_surf.m_min_triangle_angle)
                         continue;
                     
+                    double max_angle = max_triangle_angle(pos_vert_0, pos_vert_1, pos_3rd_0);
+                    max_angle = min(max_angle, max_triangle_angle(pos_vert_0, pos_vert_1, pos_3rd_1));
+                    if(max_angle < m_surf.m_max_triangle_angle)
+                        continue;
                 }
                 
                 //if the sum of the opposing angles exceeds 180, then we should flip (according to the Delaunay criterion)
@@ -809,32 +797,10 @@ bool EdgeFlipper::flip_pass( )
                 
                 int val_a, val_b, val_0, val_1;
                 Vec2i region_pair = m_mesh.get_triangle_label(triangle_a); //doesn't matter which triangle we consider.
-                
-                //do the computation for the edge counts (if necessary), and store the result in our simple cache for speed! 
-                //There's otherwise a fair amount of redundance in smooth single-region patches
-                val_0 = edge_counts_by_region_pair[vert_0].second         == region_pair ? edge_counts_by_region_pair[vert_0].first   : edge_count_bordering_region_pair(vert_0, region_pair);
-                edge_counts_by_region_pair[vert_0].first = val_0; edge_counts_by_region_pair[vert_0].second = region_pair;
-
-                val_1 = edge_counts_by_region_pair[vert_1].second         == region_pair ? edge_counts_by_region_pair[vert_1].first   : edge_count_bordering_region_pair(vert_1, region_pair);
-                edge_counts_by_region_pair[vert_1].first = val_1; edge_counts_by_region_pair[vert_1].second = region_pair;
-
-                val_a = edge_counts_by_region_pair[third_vertex_0].second == region_pair ? edge_counts_by_region_pair[third_vertex_0].first : edge_count_bordering_region_pair(third_vertex_0, region_pair);
-                edge_counts_by_region_pair[third_vertex_0].first = val_a; edge_counts_by_region_pair[third_vertex_0].second = region_pair;
-
-                val_b = edge_counts_by_region_pair[third_vertex_1].second == region_pair ? edge_counts_by_region_pair[third_vertex_1].first : edge_count_bordering_region_pair(third_vertex_1, region_pair);
-                edge_counts_by_region_pair[third_vertex_1].first = val_b; edge_counts_by_region_pair[third_vertex_1].second = region_pair;
-                
-                /*assert(val_0 == edge_count_bordering_region_pair(vert_0, region_pair));
-                assert(val_1 == edge_count_bordering_region_pair(vert_1, region_pair));
-                assert(val_a == edge_count_bordering_region_pair(third_vertex_0, region_pair));
-                assert(val_b == edge_count_bordering_region_pair(third_vertex_1, region_pair));*/
-                
-               /* 
-               //(The below is what the above 8 lines are doing, but accelerated a bit by a cache.)
                 val_0 = edge_count_bordering_region_pair(vert_0, region_pair);
                 val_1 = edge_count_bordering_region_pair(vert_1, region_pair);
                 val_a = edge_count_bordering_region_pair(third_vertex_0, region_pair);
-                val_b = edge_count_bordering_region_pair(third_vertex_1, region_pair);*/
+                val_b = edge_count_bordering_region_pair(third_vertex_1, region_pair);
                 
                 int score_before = sqr(val_a-opt_val_a) + sqr(val_b-opt_val_b)  + sqr(val_0-opt_val_0) + sqr(val_1-opt_val_1);
                 
@@ -855,31 +821,12 @@ bool EdgeFlipper::flip_pass( )
                 flipped = flip_edge( i, triangle_a, triangle_b, third_vertex_0, third_vertex_1 );            
             }
             
-            if (flipped && !m_use_Delaunay_criterion) {
-               //a flip happened, so update our cache
-               Vec2i region_pair = m_mesh.get_triangle_label(triangle_a);
-               int val_0 = edge_count_bordering_region_pair(vert_0, region_pair);
-               int val_1 = edge_count_bordering_region_pair(vert_1, region_pair);
-               int val_a = edge_count_bordering_region_pair(third_vertex_0, region_pair);
-               int val_b = edge_count_bordering_region_pair(third_vertex_1, region_pair);
-
-               edge_counts_by_region_pair[vert_0].first = val_0; edge_counts_by_region_pair[vert_0].second = region_pair;
-               edge_counts_by_region_pair[vert_1].first = val_1; edge_counts_by_region_pair[vert_1].second = region_pair;
-               edge_counts_by_region_pair[third_vertex_0].first = val_a; edge_counts_by_region_pair[third_vertex_0].second = region_pair;
-               edge_counts_by_region_pair[third_vertex_1].first = val_b; edge_counts_by_region_pair[third_vertex_1].second = region_pair;
-            }
-
             flip_occurred |= flipped;            
         }
         
         flip_occurred_ever |= flip_occurred;
     }
     
-    
-    if ( flip_occurred_ever )
-    {
-        m_surf.trim_degeneracies( m_surf.m_dirty_triangles );
-    }
     
     return flip_occurred_ever;
     
@@ -888,9 +835,6 @@ bool EdgeFlipper::flip_pass( )
 int EdgeFlipper::edge_count_bordering_region_pair(size_t vertex, Vec2i region_pair) {
     int count = 0;
     
-    //TODO Can this be sped up by "walking the loop" from the central tri
-    //around the vertex 'til we get back again? Or is this current approach faster?
-
     Vec2i flipped_pair(region_pair[1], region_pair[0]);
     
     //consider all incident edges
@@ -900,10 +844,10 @@ int EdgeFlipper::edge_count_bordering_region_pair(size_t vertex, Vec2i region_pa
         //consider all triangles on the edge
         for(size_t j = 0; j < m_surf.m_mesh.m_edge_to_triangle_map[edge].size(); ++j) {
             size_t tri = m_surf.m_mesh.m_edge_to_triangle_map[edge][j];
-            const Vec2i& labels = m_surf.m_mesh.m_triangle_labels[tri];
+            Vec2i labels = m_surf.m_mesh.get_triangle_label(tri);
             //if one of the triangles matches the requested manifold region (label pair), we're done.
             if(labels == region_pair || labels == flipped_pair) {
-                count++;
+                ++count;
                 break;
             }
         }

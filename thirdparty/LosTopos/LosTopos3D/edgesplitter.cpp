@@ -39,8 +39,8 @@ EdgeSplitter::EdgeSplitter( SurfTrack& surf, bool use_curvature, bool remesh_bou
 m_max_edge_length( UNINITIALIZED_DOUBLE ),
 m_min_edge_length( UNINITIALIZED_DOUBLE ),
 m_use_curvature( use_curvature ),
-m_remesh_boundaries( remesh_boundaries),
 m_max_curvature_multiplier( max_curvature_multiplier ),
+m_remesh_boundaries( remesh_boundaries),
 m_surf( surf )
 {}
 
@@ -385,12 +385,13 @@ bool EdgeSplitter::split_edge_pseudo_motion_introduces_intersection( const Vec3d
 ///
 // --------------------------------------------------------
 
-bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad_angles, bool use_specified_point, Vec3d const * pos, const std::vector<size_t> & ignore_vertices )
+bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad_angles, bool use_specified_point, Vec3d const * pos, const std::vector<size_t> & ignore_vertices, bool ignore_min_length )
 {
+    if (edge == 382) std::cout << "5.1" << std::endl;
     
     g_stats.add_to_int( "EdgeSplitter:edge_split_attempts", 1 );
     
-    assert( edge_is_splittable(edge) );
+    assert( edge_is_splittable(edge, ignore_min_length) );
     
     NonDestructiveTriMesh& mesh = m_surf.m_mesh;
     
@@ -409,6 +410,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         }
     }
     
+    if (edge == 382) std::cout << "5.2" << std::endl;
     
     // --------------
     // convert each incident triangle abc into a pair of triangles aec, ebc
@@ -424,7 +426,6 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         other_verts.push_back(mesh.get_third_vertex(vertex_a, vertex_b, tri_data));
     }
     
-    
     // --------------
     // set up point data for the various options
     
@@ -434,6 +435,8 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
     Vec3d new_vertex_specified_position = use_specified_point? *pos : Vec3d(0,0,0);
     
     Vec3d new_vertex_proposed_final_position;
+    
+    if (edge == 382) std::cout << "5.3" << std::endl;
     
     // Track which one we decide on.
     // Smooth point will fall back to midpoint, whereas specified and constrained points simply fail out.
@@ -467,7 +470,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         assert(m_surf.m_solid_vertices_callback);
         if (!m_surf.m_solid_vertices_callback->generate_split_position(m_surf, vertex_a, vertex_b, new_vertex_constrained_position))
         {
-            if (m_surf.m_verbose) std::cout << "Constraint callback vetoed splitting" << std::endl;
+            if (m_surf.m_verbose || true) std::cout << "Constraint callback vetoed splitting" << std::endl;
             return false;
         }
         new_vert_solid_label = m_surf.m_solid_vertices_callback->generate_split_solid_label(m_surf, vertex_a, vertex_b, m_surf.vertex_is_solid_3(vertex_a), m_surf.vertex_is_solid_3(vertex_b));
@@ -485,8 +488,9 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         use_constrained_point = false;
         use_average_point = true;
     }
-    
-    
+
+    if (edge == 382) std::cout << "5.4" << std::endl;
+
     // If we have chosen smooth subd, it may introduce intersections or normal flips,
     // and if so we will fall back to midpoint
     if(use_smooth_point) {
@@ -574,7 +578,9 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         use_average_point = !use_smooth_point;
         
     }
-    
+
+    if (edge == 382) std::cout << "5.5" << std::endl;
+
     //at this stage, if smooth is successful, we can simply go ahead with the smooth subdivision point - we're safe.
     if(use_smooth_point) {
         new_vertex_proposed_final_position = new_vertex_smooth_position;
@@ -613,7 +619,9 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         }
         
     }
-    
+
+    if (edge == 382) std::cout << "5.6" << std::endl;
+
     // --------------
     
     //At this stage, we have chosen the point we want to stick with and it is collision-safe.
@@ -622,21 +630,26 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
     //Don't allow splitting to create edges shorter than half the minimum.
     const Vec3d& va = m_surf.get_position(vertex_a);
     const Vec3d& vb = m_surf.get_position(vertex_b);
-    if(!m_surf.m_aggressive_mode) {
-        if(mag(new_vertex_proposed_final_position-va) < 0.5*m_surf.m_min_edge_length ||
-           mag(new_vertex_proposed_final_position-vb) < 0.5*m_surf.m_min_edge_length)
-            return false;
-    }
-    else { //if we're being aggressive, only stop if we're getting really extreme.
-        if(mag(new_vertex_proposed_final_position-va) < m_surf.m_hard_min_edge_len ||
-           mag(new_vertex_proposed_final_position-vb) < m_surf.m_hard_min_edge_len)
-            return false;
+    if (!ignore_min_length)
+    {
+        if(!m_surf.m_aggressive_mode) {
+            if(mag(new_vertex_proposed_final_position-va) < 0.5*m_surf.m_min_edge_length ||
+               mag(new_vertex_proposed_final_position-vb) < 0.5*m_surf.m_min_edge_length)
+                return false;
+        }
+        else { //if we're being aggressive, only stop if we're getting really extreme.
+            if(mag(new_vertex_proposed_final_position-va) < m_surf.m_hard_min_edge_len ||
+               mag(new_vertex_proposed_final_position-vb) < m_surf.m_hard_min_edge_len)
+                return false;
+        }
     }
     
     // --------------
     
+    if (edge == 382) std::cout << "5.7" << std::endl;
+
     // Check angles on new triangles
-    
+
     std::vector<Vec3d> other_vert_pos;
     for(size_t i = 0; i < other_verts.size(); ++i)
         other_vert_pos.push_back(m_surf.get_position(other_verts[i]));
@@ -687,10 +700,16 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         }
     }
     
+    if (edge == 382) std::cout << "5.8" << std::endl;
+
     // --------------
-    
+
     // Do the actual splitting
-    
+
+    void * data = NULL;
+    if (m_surf.m_mesheventcallback)
+        m_surf.m_mesheventcallback->pre_split(m_surf, edge, &data);
+
     Vec3d new_vertex_mass = 0.5 * ( m_surf.m_masses[ vertex_a ] + m_surf.m_masses[ vertex_b ] );
     for (int i = 0; i < 3; i++)
     {
@@ -774,14 +793,14 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         else
             m_surf.m_mesheventcallback->log() << "Edge split: long edge split" << std::endl;
         
-        m_surf.m_mesheventcallback->split(m_surf, edge);
+        m_surf.m_mesheventcallback->post_split(m_surf, edge, vertex_e, data);
     }
     
     ////////////////////////////////////////////////////////////
     
     //store the resulting vertex as output.
     result_vert = vertex_e;
-    
+
     return true;
     
 }
@@ -846,24 +865,27 @@ bool EdgeSplitter::edge_length_needs_split(size_t edge_index) {
 ///
 // --------------------------------------------------------
 
-bool EdgeSplitter::edge_is_splittable( size_t edge_index )
+bool EdgeSplitter::edge_is_splittable( size_t edge_index, bool ignore_min_length )
 {
     
     // skip deleted and solid edges
     if ( m_surf.m_mesh.edge_is_deleted(edge_index) ) { return false; }
-    //  if ( m_surf.edge_is_all_solid(edge_index) ) { return false; }
+    if ( m_surf.edge_is_all_solid(edge_index) ) { return false; }
     
     //if not remeshing boundary edges, skip those too
     if ( !m_remesh_boundaries && m_surf.m_mesh.m_is_boundary_edge[edge_index]) { return false; }
     
-    if(m_surf.m_aggressive_mode) {
-        //only disallow splitting if the edge is smaller than a quite small bound.
-        if(m_surf.get_edge_length(edge_index) < m_surf.m_hard_min_edge_len)
-            return false;
-    }
-    else {
-        if(m_surf.get_edge_length(edge_index) < m_surf.m_min_edge_length)
-            return false;
+    if (!ignore_min_length)
+    {
+        if(m_surf.m_aggressive_mode) {
+            //only disallow splitting if the edge is smaller than a quite small bound.
+            if(m_surf.get_edge_length(edge_index) < m_surf.m_hard_min_edge_len)
+                return false;
+        }
+        else {
+            if(m_surf.get_edge_length(edge_index) < m_surf.m_min_edge_length)
+                return false;
+        }
     }
     
     return true;
@@ -920,7 +942,7 @@ bool EdgeSplitter::large_angle_split_pass()
             // if an angle is above the max threshold, split the edge
             
             //if aggressive, use hard max, otherwise use soft max
-            if ( !m_surf.m_aggressive_mode && angle0 > m_surf.m_large_triangle_angle_to_split ||
+            if ( (!m_surf.m_aggressive_mode && angle0 > m_surf.m_large_triangle_angle_to_split) ||
                 angle0 > m_surf.m_max_triangle_angle)
             {
                 if (!edge_is_splittable(e))
@@ -997,15 +1019,22 @@ bool EdgeSplitter::split_pass()
         for ( ; iter != sortable_edges_to_try.rend(); ++iter )
         {
             size_t longest_edge = iter->m_edge_index;
-            
+            if (longest_edge == 382) std::cout << "1" << std::endl;
             if ( !edge_is_splittable(longest_edge) ) { continue; }
+            if (longest_edge == 382) std::cout << "2" << std::endl;
             
             bool should_split = edge_length_needs_split(longest_edge);
+            if (longest_edge == 382) std::cout << "3" << std::endl;
             
             if(should_split) {
+                if (longest_edge == 382) std::cout << "4" << std::endl;
                 size_t result_vert;
-                bool result = split_edge(longest_edge, result_vert);
                 
+                std::cout << "trying to split " << longest_edge << ": " << mesh.m_edges[longest_edge] << std::endl;
+                bool result = split_edge(longest_edge, result_vert);
+                std::cout << "result = " << result << std::endl;
+                
+                if (longest_edge == 382) std::cout << "5:" << result << std::endl;
                 split_occurred |= result;
             }
             

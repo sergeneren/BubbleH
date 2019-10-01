@@ -48,8 +48,8 @@ public:
     /// Constructor
     ///
     EdgeFlipper( SurfTrack& surf ) :
-    m_surf( surf ),
-    m_use_Delaunay_criterion(false)
+    m_use_Delaunay_criterion(false),
+    m_surf( surf )
     {}
     
     /// Flip all non-delaunay edges

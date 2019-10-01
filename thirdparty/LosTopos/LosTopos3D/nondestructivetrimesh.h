@@ -35,6 +35,7 @@ namespace LosTopos {
 int to_int( size_t a );
 
 
+class SurfTrack;
 
 
 // ---------------------------------------------------------
@@ -48,7 +49,8 @@ int to_int( size_t a );
 // --------------------------------------------------------
 
 class NonDestructiveTriMesh
-{  
+{
+    friend class SurfTrack;
     
 public:
     
@@ -284,6 +286,121 @@ public:
     /// List of triangles: the fundamental data
     ///
     std::vector<Vec3st> m_tris;
+    
+    ///////////////////////////////////////
+    /// Attached data
+    
+    class VertexDataBase
+    {
+        friend class NonDestructiveTriMesh;
+        
+    public:
+        VertexDataBase(NonDestructiveTriMesh * mesh) : m_mesh(mesh) { }
+
+        virtual size_t size() const = 0;
+        virtual void resize(size_t n) = 0;
+        virtual void compress(const std::vector<int> & map) = 0;
+
+    protected:
+        NonDestructiveTriMesh * m_mesh;
+    };
+    
+    template <class T>
+    class VertexData : public VertexDataBase
+    {
+    public:
+        VertexData(NonDestructiveTriMesh * mesh) : VertexDataBase(mesh) { mesh->registerVertexData(this); }
+        ~VertexData() { m_mesh->deregisterVertexData(this); }
+        const T & operator [] (int i) const { return m_data[i]; }
+              T & operator [] (int i)       { return m_data[i]; }
+        
+        size_t size() const { return m_data.size(); }
+        void resize(size_t n) { m_data.resize(n); }
+        void compress(const std::vector<int> & map) { assert(map.size() == m_data.size()); for (size_t i = 0; i < map.size(); i++) if (map[i] >= 0) m_data[map[i]] = m_data[i]; }   // map needs to be in ascending order
+
+    protected:
+    public:
+        std::vector<T> m_data;
+    };
+
+    class EdgeDataBase
+    {
+        friend class NonDestructiveTriMesh;
+        
+    public:
+        EdgeDataBase(NonDestructiveTriMesh * mesh) : m_mesh(mesh) { }
+        
+        virtual size_t size() const = 0;
+        virtual void resize(size_t n) = 0;
+        virtual void compress(const std::vector<int> & map) = 0;
+        
+    protected:
+        NonDestructiveTriMesh * m_mesh;
+    };
+    
+    template <class T>
+    class EdgeData : public EdgeDataBase
+    {
+    public:
+        EdgeData(NonDestructiveTriMesh * mesh) : EdgeDataBase(mesh) { mesh->registerEdgeData(this); }
+        ~EdgeData() { m_mesh->deregisterEdgeData(this); }
+        const T & operator [] (int i) const { return m_data[i]; }
+              T & operator [] (int i)       { return m_data[i]; }
+        
+        size_t size() const { return m_data.size(); }
+        void resize(size_t n) { m_data.resize(n); }
+        void compress(const std::vector<int> & map) { assert(map.size() == m_data.size()); for (size_t i = 0; i < map.size(); i++) if (map[i] >= 0) m_data[map[i]] = m_data[i]; }   // map needs to be in ascending order
+
+    protected:
+        std::vector<T> m_data;
+    };
+    
+    class FaceDataBase
+    {
+        friend class NonDestructiveTriMesh;
+        
+    public:
+        FaceDataBase(NonDestructiveTriMesh * mesh) : m_mesh(mesh) { }
+        
+        virtual size_t size() const = 0;
+        virtual void resize(size_t n) = 0;
+        virtual void compress(const std::vector<int> & map) = 0;
+        
+    protected:
+        NonDestructiveTriMesh * m_mesh;
+    };
+    
+    template <class T>
+    class FaceData : public FaceDataBase
+    {
+    public:
+        FaceData(NonDestructiveTriMesh * mesh) : FaceDataBase(mesh) { mesh->registerFaceData(this); }
+        ~FaceData() { m_mesh->deregisterFaceData(this); }
+        const T & operator [] (int i) const { return m_data[i]; }
+              T & operator [] (int i)       { return m_data[i]; }
+
+        size_t size() const { return m_data.size(); }
+        void resize(size_t n) { m_data.resize(n); }
+        void compress(const std::vector<int> & map) { assert(map.size() == m_data.size()); for (size_t i = 0; i < map.size(); i++) if (map[i] >= 0) m_data[map[i]] = m_data[i]; }   // map needs to be in ascending order
+
+    protected:
+        std::vector<T> m_data;
+    };
+    
+    
+    void registerVertexData(VertexDataBase * vd) { m_vds.push_back(vd); vd->resize(nv()); }
+    void registerEdgeData  (EdgeDataBase * ed)   { m_eds.push_back(ed); ed->resize(ne()); }
+    void registerFaceData  (FaceDataBase * fd)   { m_fds.push_back(fd); fd->resize(nt()); }
+    
+    void deregisterVertexData(VertexDataBase * vd)  { m_vds.erase(std::remove(m_vds.begin(), m_vds.end(), vd), m_vds.end()); vd->resize(nv()); }
+    void deregisterEdgeData  (EdgeDataBase * ed)    { m_eds.erase(std::remove(m_eds.begin(), m_eds.end(), ed), m_eds.end()); ed->resize(ne()); }
+    void deregisterFaceData  (FaceDataBase * fd)    { m_fds.erase(std::remove(m_fds.begin(), m_fds.end(), fd), m_fds.end()); fd->resize(nt()); }
+
+protected:
+    std::vector<VertexDataBase *> m_vds;
+    std::vector<EdgeDataBase *>   m_eds;
+    std::vector<FaceDataBase *>   m_fds;
+
 
 private:
     
@@ -348,6 +465,11 @@ inline const Vec3st& NonDestructiveTriMesh::get_triangle( size_t index ) const
 
 inline size_t NonDestructiveTriMesh::num_triangles() const
 {
+    for (size_t i = 0; i < m_fds.size(); i++)
+        assert(m_fds[i]->size() == m_tris.size());
+    assert(m_tris.size() == m_triangle_to_edge_map.size());
+    assert(m_tris.size() == m_triangle_labels.size());
+
     return m_tris.size();
 }
 
@@ -515,10 +637,19 @@ inline bool NonDestructiveTriMesh::is_vertex_nonmanifold(size_t v) const
 
 inline void NonDestructiveTriMesh::replace_all_triangles( const std::vector<Vec3st>& new_tris, const std::vector<Vec2i>& new_labels )
 {
+    // note that this will discard all attached data.
+
     m_tris = new_tris;
     m_triangle_labels = new_labels;
     
     update_connectivity( );
+    
+    for (size_t i = 0; i < m_vds.size(); i++)
+        m_vds[i]->resize(nv());
+    for (size_t i = 0; i < m_eds.size(); i++)
+        m_eds[i]->resize(ne());
+    for (size_t i = 0; i < m_fds.size(); i++)
+        m_fds[i]->resize(nt());
 }
 
 

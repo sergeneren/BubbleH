@@ -87,7 +87,6 @@ public:
        double in_proximity_epsilon = 1e-4,
        double in_friction_coefficient = 0.0,
        bool in_collision_safety = true,
-       bool in_collision_safety_asserts = true,
        bool in_verbose = false );
     
     /// Destructor
@@ -434,10 +433,6 @@ public:
     ///
     bool m_collision_safety;
     
-    /// Extra costly checks to ensure intersection free mesh after major remeshing loops
-    ///
-    bool m_collision_safety_asserts;
-
     /// Vertex positions, predicted locations, velocities and masses
     ///
     std::vector<Vec3d> m_masses;
@@ -571,7 +566,6 @@ inline Vec3d DynamicSurface::get_triangle_normal(size_t tri) const
 
 inline Vec3d DynamicSurface::get_triangle_normal_by_region(size_t tri, int region) const
 {
-   const Vec3st &t = m_mesh.get_triangle( tri ); 
    Vec2i label = m_mesh.get_triangle_label(tri);
    if(label[0] != region && label[1] != region) return Vec3d(0,0,0);
    Vec3d normal = get_triangle_normal(tri);

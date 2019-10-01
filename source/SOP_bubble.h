@@ -81,9 +81,11 @@ namespace BUBBLE {
 							  evalFloat(str, 1, t));
 		}
 		// End vector evaluaters
-
+		
 		fpreal	   DT(fpreal t)				{ return evalFloat("dt", 0, t); }
 		size_t	   IMP(fpreal t)			{ return evalInt("implicit", 0, t); }
+		size_t	   PBD(fpreal t)			{ return evalInt("pbd_implicit", 0, t); }
+		size_t	   RK4(fpreal t)			{ return evalInt("rk4", 0, t); }
 		fpreal	   SC(fpreal t)				{ return evalFloat("sc", 0, t); }
 		fpreal	   DC(fpreal t)				{ return evalFloat("dc", 0, t); }
 		fpreal	   SIGMA(fpreal t)			{ return evalFloat("sigma", 0, t); }

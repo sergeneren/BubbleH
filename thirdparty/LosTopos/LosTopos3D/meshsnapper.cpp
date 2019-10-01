@@ -41,10 +41,10 @@ extern RunStats g_stats;
 
 MeshSnapper::MeshSnapper( SurfTrack& surf, bool use_curvature, bool remesh_boundaries, int max_curvature_multiplier ) :
 m_surf( surf ),
-m_edgesplitter(surf, use_curvature, remesh_boundaries, max_curvature_multiplier),
+m_edge_threshold(0.03),
+m_face_threshold(0.025),
 m_facesplitter(surf),
-m_edge_threshold(0.3),
-m_face_threshold(0.25)
+m_edgesplitter(surf, use_curvature, remesh_boundaries, max_curvature_multiplier)
 {}
 
 
@@ -367,8 +367,16 @@ bool MeshSnapper::snap_vertex_pair( size_t vertex_to_keep, size_t vertex_to_dele
         }
     }
     
-    // --------------
+    if (!m_surf.vertex_is_all_solid(vertex_to_keep) && m_surf.vertex_is_all_solid(vertex_to_delete))
+        std::swap(vertex_to_delete, vertex_to_keep);
     
+    // --------------
+    // all clear, now perform the snap
+    
+    void * data = NULL;
+    if (m_surf.m_mesheventcallback)
+        m_surf.m_mesheventcallback->pre_snap(m_surf, vertex_to_delete, vertex_to_keep, &data);
+
     // start building history data
     MeshUpdateEvent collapse(MeshUpdateEvent::SNAP);
     collapse.m_vert_position = vertex_new_position;
@@ -435,8 +443,11 @@ bool MeshSnapper::snap_vertex_pair( size_t vertex_to_keep, size_t vertex_to_dele
     // Store the history
     m_surf.m_mesh_change_history.push_back(collapse);
     
+    // clean up degenerate triangles and tets
+    m_surf.trim_degeneracies( m_surf.m_dirty_triangles );
+
     if (m_surf.m_mesheventcallback)
-        m_surf.m_mesheventcallback->snap(m_surf, vertex_to_delete, vertex_to_keep);
+        m_surf.m_mesheventcallback->post_snap(m_surf, vertex_to_keep, vertex_to_delete, data);
     
     return true;
 }
@@ -496,7 +507,7 @@ bool MeshSnapper::snap_edge_pair( size_t edge0, size_t edge1)
         if (m_surf.m_mesheventcallback)
             m_surf.m_mesheventcallback->log() << "attemping to split edge0 at " << midpoint0 << std::endl;
         
-        if(!m_edgesplitter.edge_is_splittable(edge0) || !m_edgesplitter.split_edge(edge0, split_result, false, true, &midpoint0))
+        if(!m_edgesplitter.edge_is_splittable(edge0) || !m_edgesplitter.split_edge(edge0, split_result, false, true, &midpoint0, std::vector<size_t>(), true))
             return false;
         snapping_vert0 = split_result;
     }
@@ -517,9 +528,8 @@ bool MeshSnapper::snap_edge_pair( size_t edge0, size_t edge1)
         if (m_surf.m_mesheventcallback)
             m_surf.m_mesheventcallback->log() << "attempting to split edge1 at " << midpoint1 << std::endl;
         
-        if(!m_edgesplitter.edge_is_splittable(edge1) || !m_edgesplitter.split_edge(edge1, split_result, false, true, &midpoint1, std::vector<size_t>(1, snapping_vert0)))
+        if(!m_edgesplitter.edge_is_splittable(edge1) || !m_edgesplitter.split_edge(edge1, split_result, false, true, &midpoint1, std::vector<size_t>(1, snapping_vert0), true))
             return false;
-        
         snapping_vert1 = split_result;
     }
     
@@ -592,7 +602,7 @@ bool MeshSnapper::snap_face_vertex_pair( size_t face, size_t vertex)
             if (m_surf.m_mesheventcallback)
                 m_surf.m_mesheventcallback->log() << "attempting to snap to e12: " << split_point << std::endl;
             
-            if(!m_edgesplitter.edge_is_splittable(edge_to_split) || !m_edgesplitter.split_edge(edge_to_split, result_vertex, false, true, &split_point))
+            if(!m_edgesplitter.edge_is_splittable(edge_to_split) || !m_edgesplitter.split_edge(edge_to_split, result_vertex, false, true, &split_point, std::vector<size_t>(), true))
                 return false;
             
             snapping_vertex = result_vertex;
@@ -614,7 +624,7 @@ bool MeshSnapper::snap_face_vertex_pair( size_t face, size_t vertex)
             if (m_surf.m_mesheventcallback)
                 m_surf.m_mesheventcallback->log() << "attempting to snap to e02: " << split_point << std::endl;
             
-            if(!m_edgesplitter.edge_is_splittable(edge_to_split) || !m_edgesplitter.split_edge(edge_to_split, result_vertex, false, true, &split_point))
+            if(!m_edgesplitter.edge_is_splittable(edge_to_split) || !m_edgesplitter.split_edge(edge_to_split, result_vertex, false, true, &split_point, std::vector<size_t>(), true))
                 return false;
             
             snapping_vertex = result_vertex;
@@ -630,7 +640,7 @@ bool MeshSnapper::snap_face_vertex_pair( size_t face, size_t vertex)
         if (m_surf.m_mesheventcallback)
             m_surf.m_mesheventcallback->log() << "attempting to snap to e01: " << split_point << std::endl;
         
-        if(!m_edgesplitter.edge_is_splittable(edge_to_split) || !m_edgesplitter.split_edge(edge_to_split, result_vertex, false, true, &split_point))
+        if(!m_edgesplitter.edge_is_splittable(edge_to_split) || !m_edgesplitter.split_edge(edge_to_split, result_vertex, false, true, &split_point, std::vector<size_t>(), true))
             return false;
         
         snapping_vertex = result_vertex;
@@ -1015,8 +1025,6 @@ bool MeshSnapper::snap_pass()
         { 
             if (m_surf.m_mesheventcallback)
                 m_surf.m_mesheventcallback->log() << "snap successful" << std::endl;
-            // clean up degenerate triangles and tets
-            m_surf.trim_degeneracies( m_surf.m_dirty_triangles );          
         }
         else if(attempted) {
             if (m_surf.m_mesheventcallback)

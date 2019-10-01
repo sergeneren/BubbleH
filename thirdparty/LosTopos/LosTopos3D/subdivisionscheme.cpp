@@ -371,7 +371,7 @@ void ModifiedButterflyScheme::generate_new_midpoint( size_t edge_index, const Su
                         
                         //find the edge of the new tri that shares the central vertex, but is not the same as the previous edge.
                         Vec3st tri_edges = mesh.m_triangle_to_edge_map[tri];
-                        size_t next_edge;
+                        size_t next_edge = mesh.ne();
                         for(int j = 0; j < 3; ++j) {
                             size_t edge_candidate = tri_edges[j];
                             Vec2st edge_data = mesh.m_edges[edge_candidate];
@@ -380,6 +380,7 @@ void ModifiedButterflyScheme::generate_new_midpoint( size_t edge_index, const Su
                                 break;
                             }
                         }
+                        assert(next_edge < mesh.ne());
                         //advance
                         last_tri = tri;
                         cur_edge = next_edge;

@@ -171,17 +171,16 @@ private:
     friend class DynamicSurface;
     friend class EdgeCollapser;
     friend class MeshSnapper;
-    friend class MeshSmoother;
 
-    /// Apply a collision impulse between two edges
+    /// Apply a collision implulse between two edges
     /// 
     void apply_edge_edge_impulse( const Collision& collision, double impulse_magnitude, double dt );
 
-    /// Apply a collision impulse between a triangle and a vertex
+    /// Apply a collision implulse between a triangle and a vertex
     /// 
     void apply_triangle_point_impulse( const Collision& collision, double impulse_magnitude, double dt );
     
-    /// Apply a collision impulse to the specified vertices, weighted by the alphas, along the specified normal
+    /// Apply a collision implulse to the specified vertices, weighted by the alphas, along the specified normal
     ///     
     void apply_impulse(const Vec4d& alphas, 
                        const Vec4st& vertex_indices, 

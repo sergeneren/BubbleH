@@ -34,8 +34,7 @@ void BroadPhaseGrid::build_acceleration_grid( AccelerationGrid& grid,
                                              double length_scale, 
                                              double grid_padding )
 {
-    assert(length_scale != 0); //e.g., if a mesh has only positions, but no edges/tris assigned, 
-                               //this edge length will erroneously show up as zero.
+    
     assert( xmaxs.size() == xmins.size() );
     assert( xmins.size() == indices.size() );
 
@@ -65,7 +64,7 @@ void BroadPhaseGrid::build_acceleration_grid( AccelerationGrid& grid,
     
     Vec3st dims(1,1,1);
     
-    const size_t MAX_D = 1000;
+    const size_t MAX_D = 2000;
     
     if(mag(xmax-xmin) > grid_padding)
     {
@@ -78,7 +77,6 @@ void BroadPhaseGrid::build_acceleration_grid( AccelerationGrid& grid,
             if(d > MAX_D) 
             {
                 d = MAX_D;
-                std::cout << "Warning: Acceleration structure using max dimensions! (MAX_D==1000)\n";
             }
             
             dims[i] = d;
@@ -107,10 +105,8 @@ void BroadPhaseGrid::update_broad_phase( const DynamicSurface& surface, bool con
 {
     
     double grid_scale = surface.get_average_edge_length();
-    
     //TODO Fix problems where the avg edge length drops close to zero
     //leading to huge dimensions for the box.
-    //(For example, if everything is collapsing to a single point.)
     //Where can we get a reasonable scale from otherwise?
 
     // 

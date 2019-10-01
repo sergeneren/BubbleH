@@ -18,7 +18,7 @@
 #include <subdivisionscheme.h>
 #include <surftrack.h>
 #include <trianglequality.h>
-#include <algorithm>
+
 // ---------------------------------------------------------
 //  Extern globals
 // ---------------------------------------------------------
@@ -321,7 +321,7 @@ bool EdgeCollapser::collapse_edge_introduces_normal_inversion( size_t source_ver
             if ( m_surf.m_verbose ) { std::cout << "collapse edge introduces normal inversion" << std::endl; }
             
             g_stats.add_to_int( "EdgeCollapser:collapse_normal_inversion", 1 );
-            return true;
+//            return true;
         }
         
         if ( new_area < min_triangle_area )
@@ -522,6 +522,7 @@ bool EdgeCollapser::get_new_vertex_position_dihedral(Vec3d& vertex_new_position,
     //  1. one of the two vertices has no feature edges
     //  2. both have feature edges, and the edge is a feature, and one of the two vertices has exactly two feature edges
     bool large_threshold = ((keep_rank == 1 || delete_rank == 1) || (((keep_rank == 2 && m_surf.vertex_feature_is_smooth_ridge(vertex_to_keep)) || (delete_rank == 2 && m_surf.vertex_feature_is_smooth_ridge(vertex_to_delete))) && m_surf.edge_is_feature(edge)));
+    large_threshold = true; // always use large thresholds for bubbles! because there're no features other than triple junctions that we care about.
     
     large_threshold = large_threshold || m_surf.m_aggressive_mode; //if we are in aggressive mode, use the large threshold
     
@@ -615,6 +616,9 @@ bool EdgeCollapser::get_new_vertex_position_dihedral(Vec3d& vertex_new_position,
     else if (keep_vert_is_any_solid || delete_vert_is_any_solid)
     {
         assert(m_surf.m_solid_vertices_callback);
+        
+        if (!keep_vert_is_any_solid)
+            std::swap(vertex_to_keep, vertex_to_delete);
         
         Vec3d newpos = (m_surf.get_position(vertex_to_keep) + m_surf.get_position(vertex_to_delete)) / 2;
         if (!m_surf.m_solid_vertices_callback->generate_collapsed_position(m_surf, vertex_to_keep, vertex_to_delete, newpos))
@@ -845,6 +849,7 @@ bool EdgeCollapser::collapse_edge( size_t edge )
         m_surf.set_newposition( vertex_to_delete, vertex_new_position );
         
         bool volume_change = collapse_edge_introduces_volume_change( vertex_to_delete, edge, vertex_new_position );
+        volume_change = false;  // ignore volume changes for bubbles!
         
         if ( volume_change && !m_surf.m_aggressive_mode)
         {
@@ -910,6 +915,11 @@ bool EdgeCollapser::collapse_edge( size_t edge )
     }
     
     // --------------
+    // all clear, now perform the collapse
+    
+    void * data = NULL;
+    if (m_surf.m_mesheventcallback)
+        m_surf.m_mesheventcallback->pre_collapse(m_surf, edge, &data);
     
     // start building history data
     MeshUpdateEvent collapse(MeshUpdateEvent::EDGE_COLLAPSE);
@@ -1004,9 +1014,12 @@ bool EdgeCollapser::collapse_edge( size_t edge )
     
     // Store the history
     m_surf.m_mesh_change_history.push_back(collapse);
-    
+
+    // remove degeneracies
+    m_surf.trim_degeneracies( m_surf.m_dirty_triangles );
+
     if (m_surf.m_mesheventcallback)
-        m_surf.m_mesheventcallback->collapse(m_surf, edge);
+        m_surf.m_mesheventcallback->post_collapse(m_surf, edge, vertex_to_keep, data);
     
     return true;
 }
@@ -1022,7 +1035,7 @@ bool EdgeCollapser::edge_is_collapsible( size_t edge_index, double& current_leng
     
     // skip deleted and solid edges
     if ( m_surf.m_mesh.edge_is_deleted(edge_index) ) { return false; }
-    //  if ( m_surf.edge_is_any_solid(edge_index) ) { return false; }
+    if ( m_surf.edge_is_any_solid(edge_index) ) { return false; }
     
     //skip boundary edges if we're not remeshing those
     if(!m_remesh_boundaries && m_surf.m_mesh.m_is_boundary_edge[edge_index]) { return false; }
@@ -1153,13 +1166,6 @@ bool EdgeCollapser::collapse_pass()
         double dummy;
         if(edge_is_collapsible(e, dummy)) {
             bool result = collapse_edge( e );
-            
-            if ( result )
-            { 
-                // clean up degenerate triangles and tets
-                m_surf.trim_degeneracies( m_surf.m_dirty_triangles );                        
-            }
-            
             collapse_occurred |= result;
         }
     }
@@ -1168,92 +1174,72 @@ bool EdgeCollapser::collapse_pass()
     
 }
 
-
-
 bool EdgeCollapser::collapse_will_produce_irregular_junction(size_t edge)
 {
-   NonDestructiveTriMesh & mesh = m_surf.m_mesh;
-
-   size_t a = mesh.m_edges[edge][0];
-   size_t b = mesh.m_edges[edge][1];
-
-   
-   std::vector<int> regions; //list of regions that are present
-   
-   
-   //collect all incident regions
-   for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[a].size(); i++)
-   {
-      const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[a][i]);
-      if (l[0] >= 0)
-      {
-         regions.push_back(l[0]);
-      }
-      if (l[1] >= 0)
-      {
-         regions.push_back(l[1]);
-      }
-   }
-
-   for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[b].size(); i++)
-   {
-      const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[b][i]);
-      if (l[0] >= 0)
-      {
-         regions.push_back(l[0]);
-      }
-      if (l[1] >= 0)
-      {
-         regions.push_back(l[1]);
-      }
-   }
-
-   //remove duplicate regions
-   sort(regions.begin(), regions.end());
-   regions.erase(unique(regions.begin(), regions.end()), regions.end());
-   
-   //build a map from the region # to its position in the list above
-   int max_val = *(std::max_element(regions.begin(), regions.end()));
-   std::vector<int> reverse_map(max_val+1, -1); 
-   for (int i = 0; i < regions.size(); ++i)
-      reverse_map[regions[i]] = i;
-
-   //build a (local!) adjacency graph indicating which pairs of materials touch (by a face)
-   int nr = (int)regions.size();
-   bool * regiongraph = new bool[nr * nr];
-   memset(regiongraph, 0, sizeof(bool)* nr * nr);
-   for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[a].size(); i++)
-   {
-      const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[a][i]);
-      if (l[0] >= 0 && l[1] >= 0) {
-         Vec2i local_label(reverse_map[l[0]], reverse_map[l[1]]);
-         regiongraph[local_label[0] * nr + local_label[1]] = regiongraph[local_label[1] * nr + local_label[0]] = true;
-      }
-   }
-   for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[b].size(); i++)
-   {
-      const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[b][i]);
-      if (l[0] >= 0 && l[1] >= 0) {
-         Vec2i local_label(reverse_map[l[0]], reverse_map[l[1]]);
-         regiongraph[local_label[0] * nr + local_label[1]] = regiongraph[local_label[1] * nr + local_label[0]] = true;
-      }
-   }
-
-   bool irregular = false;
-   for (int i = 0; i < nr && !irregular; i++)
-   for (int j = i + 1; j < nr; j++)
-   {
-      if (!regiongraph[i * nr + j]) {
-         irregular = true;
-         break;
-      }
-   }
-   
-   delete[]regiongraph;
-
-   return irregular;
+    NonDestructiveTriMesh & mesh = m_surf.m_mesh;
+    
+    size_t a = mesh.m_edges[edge][0];
+    size_t b = mesh.m_edges[edge][1];
+    
+    std::vector<bool> regions;
+    for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[a].size(); i++)
+    {
+        const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[a][i]);
+        if (l[0] >= 0)
+        {
+            if (l[0] >= (int)regions.size()) regions.resize(l[0] + 1, false);
+            regions[l[0]] = true;
+        }
+        if (l[1] >= 0)
+        {
+            if (l[1] >= (int)regions.size()) regions.resize(l[1] + 1, false);
+            regions[l[1]] = true;
+        }
+    }
+    for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[b].size(); i++)
+    {
+        const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[b][i]);
+        if (l[0] >= 0)
+        {
+            if (l[0] >= (int)regions.size()) regions.resize(l[0] + 1, false);
+            regions[l[0]] = true;
+        }
+        if (l[1] >= 0)
+        {
+            if (l[1] >= (int)regions.size()) regions.resize(l[1] + 1, false);
+            regions[l[1]] = true;
+        }
+    }
+    
+    int nr = (int)regions.size();
+    bool * regiongraph = new bool[nr * nr];
+    memset(regiongraph, 0, sizeof(bool) * nr * nr);
+    for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[a].size(); i++)
+    {
+        const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[a][i]);
+        if (l[0] >= 0 && l[1] >= 0)
+            regiongraph[l[0] * nr + l[1]] = regiongraph[l[1] * nr + l[0]] = true;
+    }
+    for (size_t i = 0; i < mesh.m_vertex_to_triangle_map[b].size(); i++)
+    {
+        const Vec2i & l = mesh.get_triangle_label(mesh.m_vertex_to_triangle_map[b][i]);
+        if (l[0] >= 0 && l[1] >= 0)
+            regiongraph[l[0] * nr + l[1]] = regiongraph[l[1] * nr + l[0]] = true;
+    }
+    
+    bool irregular = false;
+    for (int i = 0; i < nr; i++)
+        for (int j = i + 1; j < nr; j++)
+        {
+            if (regions[i] && regions[j])
+                if (!regiongraph[i * nr + j])
+                    irregular = true;
+        }
+    
+    delete []regiongraph;
+    
+    return irregular;
 }
-
-
+    
 }
 

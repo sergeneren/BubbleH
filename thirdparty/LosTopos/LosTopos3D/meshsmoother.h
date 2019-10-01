@@ -18,7 +18,8 @@
 
 #include <cstddef>
 #include <vector>
-#include <cmath>
+#include "util.h"
+
 // ---------------------------------------------------------
 //  Forwards and typedefs
 // ---------------------------------------------------------
@@ -67,9 +68,9 @@ public:
     /// Find a new vertex location using null-space smoothing
     ///
     void null_space_smooth_vertex( size_t v, 
-                                  std::vector<double>& triangle_areas, 
-                                  std::vector<Vec3d>& triangle_normals, 
-                                  std::vector<Vec3d>& triangle_centroids, 
+                                  const std::vector<double>& triangle_areas, 
+                                  const std::vector<Vec3d>& triangle_normals, 
+                                  const std::vector<Vec3d>& triangle_centroids, 
                                   Vec3d& displacement ) const;      
     
 
@@ -96,12 +97,7 @@ private:
       const std::vector<Vec3d>& triangle_normals, 
       const std::vector<Vec3d>& triangle_centroids) const;
 
-   bool smooth_vertex_pseudo_motion_introduces_collision(size_t moving_vertex) const;
-  
-   friend class SurfTrack;
-
-
-   /// The mesh this object operates on
+    /// The mesh this object operates on
     /// 
     SurfTrack& m_surf;
     

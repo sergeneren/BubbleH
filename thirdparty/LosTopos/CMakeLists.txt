@@ -1,10 +1,9 @@
 add_definitions(-DUSE_FORTRAN_BLAS)
 
-file (GLOB_RECURSE Headers "${LOS_TOPOS_DIR}/LosTopos3D/*.h" )
-file (GLOB_RECURSE Headers "${LOS_TOPOS_DIR}/common/*.h" )
+file (GLOB_RECURSE Headers "${LOS_TOPOS_DIR}/*.h" )
 
-file (GLOB_RECURSE Sources "${LOS_TOPOS_DIR}/LosTopos3D/*.cpp" )
-file (GLOB_RECURSE Sources "${LOS_TOPOS_DIR}/common/*.cpp" )
+file (GLOB_RECURSE Sources "${LOS_TOPOS_DIR}/*.cpp" )
+
 
 find_package (OpenGL REQUIRED)
 include_directories (${OPENGL_INCLUDE_DIR})
