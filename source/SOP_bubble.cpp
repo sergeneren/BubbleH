@@ -58,7 +58,7 @@ void newSopOperator(OP_OperatorTable *table) {
 
 	table->addOperator(new OP_Operator (
 		"sop_bubble",
-		"SOP_BUBBLE",
+		"Soap Film",
 		SOP_bubble::myConstructor,
 		SOP_bubble::myTemplateList,
 		1, // min number of inputs 
@@ -146,7 +146,7 @@ OP_Node * SOP_bubble::myConstructor(OP_Network *net, const char *name, OP_Operat
 SOP_bubble::SOP_bubble(OP_Network *net, const char *name, OP_Operator *op) : SOP_Node(net, name, op)
 {
 
-	mySopFlags.setManagesDataIDs(true); 
+	//mySopFlags.setManagesDataIDs(true); 
 
 }
 
@@ -247,7 +247,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		gdp->getEdgeAdjacentPolygons(neighbour_prims, prim_it.getOffset());
 		prim = gdp->getPrimitive(prim_it.getOffset());
 		pt_range = prim->getPointRange();
-
+		
 		std::vector<GA_Offset> pt_offsets;
 
 		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
@@ -271,20 +271,72 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 
 
 	LosTopos::SurfTrack &st =  *(m_vs->surfTrack());
-	vertices = st.get_positions();
-
+	vertices = st.get_newpositions();
+	
 	
 
-	pt_range = gdp->getPointRange();
-	for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
-		LosTopos::Vec3d new_pos = vertices[*it];
-		pt_pos.set(it.getOffset(), UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
+
+	if (gdp->getNumPrimitives() != m_vs->mesh().nt()) { // There is a change in topology 
+
+		gdp->clearAndDestroy();
+
+		GA_Offset start_ptoff = gdp->appendPointBlock(m_vs->mesh().nv());
+		
+		// for each triangle add a primitive
+		for (size_t pr = 0; pr < m_vs->mesh().nt(); ++pr) { 
+	
+			GA_Offset start_vtxoff;
+			GA_Offset prim_off = gdp->appendPrimitivesAndVertices(GA_PRIMPOLY, 1, 3, start_vtxoff, true);
+						
+			LosTopos::Vec3st indices = m_vs->mesh().get_triangle(pr);
+			
+			for (size_t i = 0; i < 3; ++i) {
+				
+				gdp->getTopology().wireVertexPoint(start_vtxoff + i, start_ptoff + indices[i]);
+
+			}
+			
+		}
+		
+		gdp->bumpDataIdsForAddOrRemove(true, true, true); 
+		
+
+		// Set the point positions
+		for (size_t i = 0; i < m_vs->mesh().nv(); ++i) {
+
+			LosTopos::Vec3d new_pos = vertices[i];
+			gdp->setPos3(start_ptoff+i , UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
+		}
+		
+
+		// Set triangle labels 
+		GA_RWHandleIA temp_face_labels(gdp->addIntArray(GA_ATTRIB_PRIMITIVE, "label", 2));
+		GA_Offset prim_offset;
+
+		for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
+			LosTopos::Vec2i triangle_label = m_vs->mesh().get_triangle_label(*prim_it);
+			UT_IntArray data;
+			data.append(triangle_label[0]);
+			data.append(triangle_label[1]);
+
+			temp_face_labels.set(*prim_it, data);
+		}
+			   		 
+		temp_face_labels->bumpDataId();
+
+
 	}
+	else {
 
-	pt_pos.bumpDataId();
+		pt_range = gdp->getPointRange();
+		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
+			LosTopos::Vec3d new_pos = vertices[*it];
+			pt_pos.set(it.getOffset(), UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
+		}
 
+		pt_pos.bumpDataId();
 
-
+	}
 
 
 	delete m_vs;

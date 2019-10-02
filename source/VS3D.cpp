@@ -1158,13 +1158,13 @@ void VS3D::pre_collapse(const LosTopos::SurfTrack & st, size_t e, void ** data)
     }
 
     *data = (void *)td;
-    std::cout << "pre collapse: " << e << ": " << td->v0 << " " << td->v1 << std::endl;
+    if(m_st->m_verbose) std::cout << "pre collapse: " << e << ": " << td->v0 << " " << td->v1 << std::endl;
 }
 
 void VS3D::post_collapse(const LosTopos::SurfTrack & st, size_t e, size_t merged_vertex, void * data)
 {
     CollapseTempData * td = (CollapseTempData *)data;
-    std::cout << "post collapse: " << e << ": " << td->v0 << " " << td->v1 << " => " << merged_vertex << std::endl;
+	if (m_st->m_verbose) std::cout << "post collapse: " << e << ": " << td->v0 << " " << td->v1 << " => " << merged_vertex << std::endl;
     assert((st.m_mesh.vertex_is_deleted(td->v0) && merged_vertex == td->v1) || (st.m_mesh.vertex_is_deleted(td->v1) && merged_vertex == td->v0));
     
     Vec3d merged_x = vc(st.pm_positions[merged_vertex]);
@@ -1269,13 +1269,13 @@ void VS3D::pre_split(const LosTopos::SurfTrack & st, size_t e, void ** data)
     }
 
     *data = (void *)td;
-    std::cout << "pre split: " << e << ": " << td->v0 << " " << td->v1 << std::endl;
+	if (m_st->m_verbose) std::cout << "pre split: " << e << ": " << td->v0 << " " << td->v1 << std::endl;
 }
 
 void VS3D::post_split(const LosTopos::SurfTrack & st, size_t e, size_t new_vertex, void * data)
 {
     SplitTempData * td = (SplitTempData *)data;
-    std::cout << "post split: " << e << ": " << td->v0 << " " << td->v1 << " => " << new_vertex << std::endl;
+	if (m_st->m_verbose) std::cout << "post split: " << e << ": " << td->v0 << " " << td->v1 << " => " << new_vertex << std::endl;
     
     Vec3d midpoint_x = vc(st.pm_positions[new_vertex]);
     double s = (midpoint_x - td->old_x0).dot(td->old_x1 - td->old_x0) / (td->old_x1 - td->old_x0).squaredNorm();
@@ -1392,7 +1392,7 @@ void VS3D::post_t1(const LosTopos::SurfTrack & st, size_t v, size_t a, size_t b,
     (*m_Gamma)[a] = (*m_Gamma)[v];
     (*m_Gamma)[b] = (*m_Gamma)[v];
     
-    std::cout << "v Gammas: " << std::endl << (*m_Gamma)[v].values << std::endl;
+	if (m_st->m_verbose) std::cout << "v Gammas: " << std::endl << (*m_Gamma)[v].values << std::endl;
     
     for (size_t i = 0; i < td->neighbor_verts.size(); i++)
     {
@@ -1413,7 +1413,7 @@ void VS3D::post_t1(const LosTopos::SurfTrack & st, size_t v, size_t a, size_t b,
                 if (rps(j, k) && !td->neighbor_region_pairs[i](j, k))
                     (*m_Gamma)[vother].set(j, k, (*m_Gamma)[v].get(j, k));
         
-        std::cout << "Gammas: " << std::endl << (*m_Gamma)[vother].values << std::endl;
+		if (m_st->m_verbose) std::cout << "Gammas: " << std::endl << (*m_Gamma)[vother].values << std::endl;
     }
     
 }
@@ -1479,13 +1479,13 @@ void VS3D::pre_snap(const LosTopos::SurfTrack & st, size_t v0, size_t v1, void *
     }
     
     *data = (void *)td;
-    std::cout << "pre snap: " << v0 << " " << v1 << std::endl;
+	if (m_st->m_verbose) std::cout << "pre snap: " << v0 << " " << v1 << std::endl;
 }
 
 void VS3D::post_snap(const LosTopos::SurfTrack & st, size_t v_kept, size_t v_deleted, void * data)
 {
     SnapTempData * td = (SnapTempData *)data;
-    std::cout << "post snap: " << td->v0 << " " << td->v1 << " => " << v_kept << std::endl;
+	if (m_st->m_verbose) std::cout << "post snap: " << td->v0 << " " << td->v1 << " => " << v_kept << std::endl;
     assert((td->v0 == v_kept && td->v1 == v_deleted) || (td->v1 == v_kept && td->v0 == v_deleted));
     assert(v_kept != v_deleted);
     assert(st.m_mesh.vertex_is_deleted(v_deleted));
@@ -1499,13 +1499,13 @@ void VS3D::post_snap(const LosTopos::SurfTrack & st, size_t v_kept, size_t v_del
     for (size_t i = 0; i < st.m_mesh.m_vertex_to_triangle_map[v_kept].size(); i++)
     {
         LosTopos::Vec2i l = st.m_mesh.get_triangle_label(st.m_mesh.m_vertex_to_triangle_map[v_kept][i]);
-        std::cout << "triangle " << st.m_mesh.m_vertex_to_triangle_map[v_kept][i] << " label = " << l << std::endl;
+		if (m_st->m_verbose) std::cout << "triangle " << st.m_mesh.m_vertex_to_triangle_map[v_kept][i] << " label = " << l << std::endl;
         merged_vertex_incident_region_pairs(l[0], l[1]) = merged_vertex_incident_region_pairs(l[1], l[0]) = true;
     }
     
-    std::cout << "v0 incident region pairs: " << std::endl << td->v0_incident_region_pairs << std::endl;
-    std::cout << "v1 incident region pairs: " << std::endl << td->v1_incident_region_pairs << std::endl;
-    std::cout << "merged vertex incident region pairs: " << std::endl << merged_vertex_incident_region_pairs << std::endl;
+	if (m_st->m_verbose) std::cout << "v0 incident region pairs: " << std::endl << td->v0_incident_region_pairs << std::endl;
+	if (m_st->m_verbose) std::cout << "v1 incident region pairs: " << std::endl << td->v1_incident_region_pairs << std::endl;
+	if (m_st->m_verbose) std::cout << "merged vertex incident region pairs: " << std::endl << merged_vertex_incident_region_pairs << std::endl;
     
     // for region pairs not existing in original v0 and v1, we cannot simply assume 0 circulation because the neighbors that do have those region pairs
     //  may have accumulated some amount of circulations, and filling in 0 will cause vorticity spikes. The information that should be filled in here
@@ -1520,7 +1520,7 @@ void VS3D::post_snap(const LosTopos::SurfTrack & st, size_t v_kept, size_t v_del
             {
                 if (!td->v0_incident_region_pairs(i, j) && !td->v1_incident_region_pairs(i, j))
                 {
-                    std::cout << "region pair " << i << " " << j << " is being computed from 1-ring neighbors" << std::endl;
+					if (m_st->m_verbose) std::cout << "region pair " << i << " " << j << " is being computed from 1-ring neighbors" << std::endl;
                     double neighborhood_mean = 0;
                     int neighborhood_counter = 0;
                     for (size_t k = 0; k < st.m_mesh.m_vertex_to_edge_map[v_kept].size(); k++)
@@ -1539,7 +1539,7 @@ void VS3D::post_snap(const LosTopos::SurfTrack & st, size_t v_kept, size_t v_del
                             }
                         }
                         
-                        std::cout << "vother = " << vother << " incident = " << incident_to_this_region_pair << std::endl;
+						if (m_st->m_verbose) std::cout << "vother = " << vother << " incident = " << incident_to_this_region_pair << std::endl;
                         
                         if (incident_to_this_region_pair)
                         {
@@ -1564,9 +1564,9 @@ void VS3D::post_snap(const LosTopos::SurfTrack & st, size_t v_kept, size_t v_del
             }
         }
     }
-    std::cout << "v0 Gamma = " << std::endl << (*m_Gamma)[td->v0].values << std::endl;
-    std::cout << "v1 Gamma = " << std::endl << (*m_Gamma)[td->v1].values << std::endl;
-    std::cout << "new Gamma = " << std::endl << newGamma.values << std::endl;
+	if (m_st->m_verbose) std::cout << "v0 Gamma = " << std::endl << (*m_Gamma)[td->v0].values << std::endl;
+	if (m_st->m_verbose) std::cout << "v1 Gamma = " << std::endl << (*m_Gamma)[td->v1].values << std::endl;
+	if (m_st->m_verbose) std::cout << "new Gamma = " << std::endl << newGamma.values << std::endl;
     (*m_Gamma)[v_kept] = newGamma;
 }
 
