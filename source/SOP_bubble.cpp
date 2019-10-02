@@ -187,19 +187,19 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	Options::addIntegerOption("remeshing-iterations", REMESH_ITE(t));
 
 
-	Options::addDoubleOption("lostopos-collision-epsilon-fraction", COLL_EPS(t));       // lostopos collision epsilon (fraction of mean edge length)
-	Options::addDoubleOption("lostopos-merge-proximity-epsilon-fraction", MERGE_EPS(t)); // lostopos merge proximity epsilon (fraction of mean edge length)
-	Options::addBooleanOption("lostopos-perform-smoothing", SMOOTH(t));               // whether or not to perform smoothing
-	Options::addDoubleOption("lostopos-max-volume-change-fraction", VC_F(t));       // maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
+	Options::addDoubleOption("lostopos-collision-epsilon-fraction", COLL_EPS(t));			// lostopos collision epsilon (fraction of mean edge length)
+	Options::addDoubleOption("lostopos-merge-proximity-epsilon-fraction", MERGE_EPS(t));	// lostopos merge proximity epsilon (fraction of mean edge length)
+	Options::addBooleanOption("lostopos-perform-smoothing", SMOOTH(t));						// whether or not to perform smoothing
+	Options::addDoubleOption("lostopos-max-volume-change-fraction", VC_F(t));				// maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
 	Options::addDoubleOption("lostopos-min-triangle-angle", MIN_TRI_ANG(t));                // min triangle angle (in degrees)
-	Options::addDoubleOption("lostopos-max-triangle-angle", MAX_TRI_ANG(t));              // max triangle angle (in degrees)
-	Options::addDoubleOption("lostopos-large-triangle-angle-to-split", LAR_TRI_ANG(t));   // threshold for large angles to be split
+	Options::addDoubleOption("lostopos-max-triangle-angle", MAX_TRI_ANG(t));				// max triangle angle (in degrees)
+	Options::addDoubleOption("lostopos-large-triangle-angle-to-split", LAR_TRI_ANG(t));		// threshold for large angles to be split
 	Options::addDoubleOption("lostopos-min-triangle-area-fraction", MIN_TRI_AREA(t));       // minimum allowed triangle area (fraction of mean edge length squared)
-	Options::addBooleanOption("lostopos-t1-transition-enabled", T1_TRANS(t));            // whether t1 is enabled
-	Options::addDoubleOption("lostopos-t1-pull-apart-distance-fraction", T1_PULL(t));   // t1 pull apart distance (fraction of mean edge legnth)
-	Options::addBooleanOption("lostopos-smooth-subdivision", LT_SM_SBD(t));              // whether to use smooth subdivision during remeshing
-	Options::addBooleanOption("lostopos-allow-non-manifold", true);               // whether to allow non-manifold geometry in the mesh
-	Options::addBooleanOption("lostopos-allow-topology-changes", true);           // whether to allow topology changes
+	Options::addBooleanOption("lostopos-t1-transition-enabled", T1_TRANS(t));				// whether t1 is enabled
+	Options::addDoubleOption("lostopos-t1-pull-apart-distance-fraction", T1_PULL(t));		// t1 pull apart distance (fraction of mean edge legnth)
+	Options::addBooleanOption("lostopos-smooth-subdivision", LT_SM_SBD(t));					// whether to use smooth subdivision during remeshing
+	Options::addBooleanOption("lostopos-allow-non-manifold", true);							// whether to allow non-manifold geometry in the mesh
+	Options::addBooleanOption("lostopos-allow-topology-changes", true);						// whether to allow topology changes
 
 	Options::addIntegerOption("mesh-size-n", 2);
 	Options::addIntegerOption("mesh-size-m", 2);
@@ -241,8 +241,8 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	GA_Offset prim_offset;
 	GA_Primitive *prim;
 	GA_Offset goff;
-	GA_ROHandleI prim_class(gdp, GA_ATTRIB_PRIMITIVE, "class");
-
+	GA_RWHandleIA face_label(gdp, GA_ATTRIB_PRIMITIVE, "label"); 
+	
 	for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
 		gdp->getEdgeAdjacentPolygons(neighbour_prims, prim_it.getOffset());
 		prim = gdp->getPrimitive(prim_it.getOffset());
@@ -255,8 +255,13 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		}
 		 
 		faces.push_back(LosTopos::Vec3st(pt_offsets[2], pt_offsets[1], pt_offsets[0]));
+		
+		if (face_label.isValid()) { 
+			UT_Int32Array labels;
+			face_label.get(prim_it.getOffset(), labels);			
+			face_labels.push_back(LosTopos::Vec2i(labels[0], labels[1]));
+		}
 
-		if(prim_class.isValid()) face_labels.push_back(LosTopos::Vec2i(prim_class.get(prim_it.getOffset())+1, 0));
 		else face_labels.push_back(LosTopos::Vec2i(1, 0));
 	}
 
@@ -268,6 +273,8 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	LosTopos::SurfTrack &st =  *(m_vs->surfTrack());
 	vertices = st.get_positions();
 
+	
+
 	pt_range = gdp->getPointRange();
 	for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
 		LosTopos::Vec3d new_pos = vertices[*it];
@@ -275,6 +282,12 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	}
 
 	pt_pos.bumpDataId();
+
+
+
+
+
+	delete m_vs;
 
 	return error();
 }
