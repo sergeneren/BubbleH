@@ -1,6 +1,6 @@
 # BubbleH
 
-BubbleH is an implementation of siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/) in Sidefx Houdini
+Bubble<sup>H</sup> is an implementation of siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/) in Sidefx Houdini. It solves 
  
 
 ### Release Notes
