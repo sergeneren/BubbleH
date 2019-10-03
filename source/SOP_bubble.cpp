@@ -26,14 +26,18 @@
 /*! \file
 *
 *   SOP level entry point for multitracker implementation file
-*	In this file houdini geometry is sent to MeshIO for being processed as a LosTopos surface   
+*	In this file houdini geometry is converted to a LosTopos surface, integrated    
+*	and the positions are copied back. 
 *
+*	In every time step we delete and create the houdini geometry from scratch. This  
+*	will be an adaptive system in the future.                                                                   
 */
 
 
 //Local
 
 #include "SOP_bubble.h"
+#include "MeshIO.h"
 #include "VS3D.h"
 #include "SimOptions.h"
 
@@ -161,7 +165,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	addMessage(SOP_MESSAGE, "Soap Bubble Simulator"); 
 	
 	fpreal t = context.getTime();
-	
+	MeshIO meshio; 
 
 	// Parse options
 	Options::addStringOption("scene", "T1");
@@ -208,152 +212,29 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 
 	// Create surface tracker
 
-
-	std::vector<LosTopos::Vec3d> vertices; 
-	std::vector<LosTopos::Vec3st> faces;
-	std::vector<LosTopos::Vec2i> face_labels;
-	std::vector<size_t> constrained_vertices;
-	std::vector<Vec3d> constrained_positions;
-
-
-	GA_Range pt_range = gdp->getPointRange();
-	if (pt_range.empty()) return error(); 
-
-	GA_RWHandleV3 pt_pos(gdp->getP());
-	GA_ROHandleI cons_pt(gdp, GA_ATTRIB_POINT, "const"); 
-
-	for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
-	
-		UT_Vector3F pos = pt_pos.get(it.getOffset());
-		vertices.push_back(LosTopos::Vec3d(pos[0], pos[1], pos[2]));
-
-		if (cons_pt.isValid()) {
-			bool constrained = cons_pt.get(it.getOffset());
-
-			if (constrained) {
-				constrained_vertices.push_back(*it);
-				constrained_positions.push_back(Vec3d(pos[0], pos[1], pos[2]));
-			}
-		}
-	}
-	
-	GA_OffsetArray neighbour_prims;
-	GA_Offset prim_offset;
-	GA_Primitive *prim;
-	GA_Offset goff;
-	GA_RWHandleIA face_label(gdp, GA_ATTRIB_PRIMITIVE, "label"); 
-	
-	for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
-		gdp->getEdgeAdjacentPolygons(neighbour_prims, prim_it.getOffset());
-		prim = gdp->getPrimitive(prim_it.getOffset());
-		pt_range = prim->getPointRange();
-		
-		std::vector<GA_Offset> pt_offsets;
-
-		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
-			pt_offsets.push_back(*it);
-		}
-		 
-		faces.push_back(LosTopos::Vec3st(pt_offsets[2], pt_offsets[1], pt_offsets[0]));
-		
-		if (face_label.isValid()) { 
-			UT_Int32Array labels;
-			face_label.get(prim_it.getOffset(), labels);			
-			face_labels.push_back(LosTopos::Vec2i(labels[0], labels[1]));
-		}
-
-		else face_labels.push_back(LosTopos::Vec2i(1, 0));
+	VS3D *m_vs = meshio.build_tracker(gdp); 
+	if (!m_vs) {
+		UT_WorkBuffer buf;
+		buf.sprintf("Unable to create surface tracker!");
+		addError(SOP_MESSAGE, buf.buffer());
+		return error();
 	}
 
-	VS3D *m_vs = new VS3D(vertices, faces, face_labels, constrained_vertices, constrained_positions);
-
+	// Integrate positions
 	m_vs->step(DT(t));
 
+	// Convert surface tracker mesh back to houdini geo
+	bool success = meshio.convert_to_houdini_geo(gdp, m_vs); 
 
-	LosTopos::SurfTrack &st =  *(m_vs->surfTrack());
-	vertices = st.get_newpositions();
-
-	//if (gdp->getNumPrimitives() != m_vs->mesh().nt())
-
-	if (true) { // There is a change in topology 
-
-		gdp->clearAndDestroy();
-
-		GA_Offset start_ptoff = gdp->appendPointBlock(m_vs->mesh().nv());
-		
-		
-		// We have deleted every attribute and primitives. Now we have to create them back 
-		GA_Attribute *temp_face_labels = gdp->findIntArray(GA_ATTRIB_PRIMITIVE, "label", -1, -1);	
-		if (!temp_face_labels) temp_face_labels = gdp->addIntArray(GA_ATTRIB_PRIMITIVE, "label", 1);
-		
-		if (!temp_face_labels)
-		{
-			UT_WorkBuffer           buf;
-			buf.sprintf("Failed to create array attributes \"%s\"", "label");
-			addError(SOP_MESSAGE, buf.buffer());
-			return error();
-		}
-		const GA_AIFNumericArray *aif = temp_face_labels->getAIFNumericArray();
-		if (!aif)
-		{
-			UT_WorkBuffer           buf;
-			buf.sprintf("Attribute \"%s\" not a numeric array!", "label");
-			addError(SOP_MESSAGE, buf.buffer());
-			return error();
-		}
-		
-
-		// for each triangle add a primitive
-		for (size_t pr = 0; pr < m_vs->mesh().nt(); ++pr) { 
-	
-			GA_Offset start_vtxoff;
-			GA_Offset prim_off = gdp->appendPrimitivesAndVertices(GA_PRIMPOLY, 1, 3, start_vtxoff, true);
-						
-			LosTopos::Vec3st indices = m_vs->mesh().get_triangle(pr);
-			
-			// Connect vertices
-			for (size_t i = 0; i < 3; ++i) {
-
-				gdp->getTopology().wireVertexPoint(start_vtxoff + i, start_ptoff + indices[2-i]);
-
-			}
-			
-			
-			// Write back triangle labels
-			LosTopos::Vec2i triangle_label = m_vs->mesh().get_triangle_label(pr);
-			UT_IntArray data;
-			data.append(triangle_label[0]);
-			data.append(triangle_label[1]);
-			aif->set(temp_face_labels, prim_off, data);
-				
-		}
-		temp_face_labels->bumpDataId();
-
-		// Set the point positions
-		for (size_t i = 0; i < m_vs->mesh().nv(); ++i) {
-
-			LosTopos::Vec3d new_pos = vertices[i];
-			gdp->setPos3(start_ptoff+i , UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
-		}
-		
-
-		gdp->bumpDataIdsForAddOrRemove(true, true, true);
-	}
-	else {
-
-		pt_range = gdp->getPointRange();
-		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
-			LosTopos::Vec3d new_pos = vertices[*it];
-			pt_pos.set(it.getOffset(), UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
-		}
-
-		pt_pos.bumpDataId();
-
+	if (!success) {
+		UT_WorkBuffer buf;
+		buf.sprintf("Unable to convert surface tracker mesh back to houdini geometry!");
+		addError(SOP_MESSAGE, buf.buffer());
+		return error();
 	}
 	
-
 	delete m_vs;
-
+	
 	return error();
 }
 
