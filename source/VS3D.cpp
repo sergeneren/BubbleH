@@ -856,7 +856,7 @@ bool VS3D::generate_collapsed_position(LosTopos::SurfTrack & st, size_t v0, size
 
 bool VS3D::generate_split_position(LosTopos::SurfTrack & st, size_t v0, size_t v1, LosTopos::Vec3d & pos)
 {
-    std::cout << "solid callback: generate split position: " << v0 << " " << v1 << " " << (st.vertex_is_any_solid(v0) && st.vertex_is_any_solid(v1)) << std::endl;
+	if (m_st->m_verbose) std::cout << "solid callback: generate split position: " << v0 << " " << v1 << " " << (st.vertex_is_any_solid(v0) && st.vertex_is_any_solid(v1)) << std::endl;
     pos = (st.pm_positions[v0] + st.pm_positions[v1]) / 2;
     if (st.vertex_is_any_solid(v0) && st.vertex_is_any_solid(v1))
         return false;
@@ -1169,7 +1169,7 @@ void VS3D::pre_t1(const LosTopos::SurfTrack & st, size_t v, void ** data)
 
 void VS3D::post_t1(const LosTopos::SurfTrack & st, size_t v, size_t a, size_t b, void * data)
 {
-    std::cout << "v = " << v << " -> " << a << " " << b << std::endl;
+	if (m_st->m_verbose) std::cout << "v = " << v << " -> " << a << " " << b << std::endl;
     T1TempData * td = (T1TempData *)data;
     
     (*m_Gamma)[a] = (*m_Gamma)[v];
@@ -1189,7 +1189,7 @@ void VS3D::post_t1(const LosTopos::SurfTrack & st, size_t v, size_t a, size_t b,
             rps(l[0], l[1]) = rps(l[1], l[0]) = true;
         }
         
-        std::cout << vother << std::endl << td->neighbor_region_pairs[i] << std::endl << "-> " << std::endl << rps << std::endl;
+		if (m_st->m_verbose) std::cout << vother << std::endl << td->neighbor_region_pairs[i] << std::endl << "-> " << std::endl << rps << std::endl;
         
         for (int j = 0; j < m_nregion; j++)
             for (int k = j + 1; k < m_nregion; k++)

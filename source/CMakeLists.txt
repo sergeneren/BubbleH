@@ -17,3 +17,20 @@ target_link_libraries( BubbleH Houdini LosTopos)
 message(STATUS "Houdini directory: ${Houdini_DIR}")
 
 houdini_configure_target( BubbleH )
+
+
+#copy icon to %HOME%/%HOUDINI_VERSION%/config/icons folder
+
+set(TARGET_FILE "${IMG_DIR}/SOP_sop_bubble.svg")
+set(TARGET_DIR "")
+
+houdini_get_default_install_dir(TARGET_DIR)
+
+set(TARGET_DIR "${TARGET_DIR}\\config\\icons")
+
+add_custom_command(TARGET BubbleH
+					POST_BUILD
+					COMMAND ${CMAKE_COMMAND} -E copy "${TARGET_FILE}" "${TARGET_DIR}"
+					COMMENT "Copying ${TARGET_FILE} to ${TARGET_DIR}")
+
+message(STATUS "${TARGET_FILE} will be copied to ${TARGET_DIR}")

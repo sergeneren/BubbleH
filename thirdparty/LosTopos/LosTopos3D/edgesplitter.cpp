@@ -387,7 +387,7 @@ bool EdgeSplitter::split_edge_pseudo_motion_introduces_intersection( const Vec3d
 
 bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad_angles, bool use_specified_point, Vec3d const * pos, const std::vector<size_t> & ignore_vertices, bool ignore_min_length )
 {
-    if (edge == 382) std::cout << "5.1" << std::endl;
+    //if (edge == 382) std::cout << "5.1" << std::endl;
     
     g_stats.add_to_int( "EdgeSplitter:edge_split_attempts", 1 );
     
@@ -410,7 +410,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         }
     }
     
-    if (edge == 382) std::cout << "5.2" << std::endl;
+    //if (edge == 382) std::cout << "5.2" << std::endl;
     
     // --------------
     // convert each incident triangle abc into a pair of triangles aec, ebc
@@ -436,7 +436,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
     
     Vec3d new_vertex_proposed_final_position;
     
-    if (edge == 382) std::cout << "5.3" << std::endl;
+    //if (edge == 382) std::cout << "5.3" << std::endl;
     
     // Track which one we decide on.
     // Smooth point will fall back to midpoint, whereas specified and constrained points simply fail out.
@@ -489,7 +489,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         use_average_point = true;
     }
 
-    if (edge == 382) std::cout << "5.4" << std::endl;
+    //if (edge == 382) std::cout << "5.4" << std::endl;
 
     // If we have chosen smooth subd, it may introduce intersections or normal flips,
     // and if so we will fall back to midpoint
@@ -579,7 +579,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         
     }
 
-    if (edge == 382) std::cout << "5.5" << std::endl;
+    //if (edge == 382) std::cout << "5.5" << std::endl;
 
     //at this stage, if smooth is successful, we can simply go ahead with the smooth subdivision point - we're safe.
     if(use_smooth_point) {
@@ -620,7 +620,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         
     }
 
-    if (edge == 382) std::cout << "5.6" << std::endl;
+    //if (edge == 382) std::cout << "5.6" << std::endl;
 
     // --------------
     
@@ -646,7 +646,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
     
     // --------------
     
-    if (edge == 382) std::cout << "5.7" << std::endl;
+    //if (edge == 382) std::cout << "5.7" << std::endl;
 
     // Check angles on new triangles
 
@@ -700,7 +700,7 @@ bool EdgeSplitter::split_edge( size_t edge, size_t& result_vert, bool ignore_bad
         }
     }
     
-    if (edge == 382) std::cout << "5.8" << std::endl;
+    //if (edge == 382) std::cout << "5.8" << std::endl;
 
     // --------------
 
@@ -931,12 +931,15 @@ bool EdgeSplitter::large_angle_split_pass()
             // compute the angle at each opposite vertex
             const Vec3d& opposite_point0 = m_surf.get_position(opposite0);
             double acos_input = dot( normalized(edge_point0-opposite_point0), normalized(edge_point1-opposite_point0) );
-            if (acos_input != acos_input || acos_input <= -1 || acos_input >= 1) {
+            /*
+			if (acos_input != acos_input || acos_input <= -1 || acos_input >= 1) {
                 std::cout << "Value: " << acos_input << std::endl;
                 std::cout << "edgepoint0:" << edge_point0 << "  edge_point1: " << edge_point1 << "   Opp0:" << opposite_point0 << std::endl;
                 std::cout << "Difone: " << edge_point0-opposite_point0 <<  "  Diftwo: " << edge_point1-opposite_point0 << std::endl;
                 std::cout << "Left: " << mag(edge_point0-opposite_point0)  <<  "  Right: " << mag(edge_point1-opposite_point0) << std::endl;
             }
+			*/
+
             double angle0 = rad2deg( acos( acos_input ) );
             
             // if an angle is above the max threshold, split the edge
@@ -1019,22 +1022,22 @@ bool EdgeSplitter::split_pass()
         for ( ; iter != sortable_edges_to_try.rend(); ++iter )
         {
             size_t longest_edge = iter->m_edge_index;
-            if (longest_edge == 382) std::cout << "1" << std::endl;
+            //if (longest_edge == 382) std::cout << "1" << std::endl;
             if ( !edge_is_splittable(longest_edge) ) { continue; }
-            if (longest_edge == 382) std::cout << "2" << std::endl;
+            //if (longest_edge == 382) std::cout << "2" << std::endl;
             
             bool should_split = edge_length_needs_split(longest_edge);
-            if (longest_edge == 382) std::cout << "3" << std::endl;
+            //if (longest_edge == 382) std::cout << "3" << std::endl;
             
             if(should_split) {
-                if (longest_edge == 382) std::cout << "4" << std::endl;
+                //if (longest_edge == 382) std::cout << "4" << std::endl;
                 size_t result_vert;
                 
                 //std::cout << "trying to split " << longest_edge << ": " << mesh.m_edges[longest_edge] << std::endl;
                 bool result = split_edge(longest_edge, result_vert);
                 //std::cout << "result = " << result << std::endl;
                 
-                if (longest_edge == 382) std::cout << "5:" << result << std::endl;
+                //if (longest_edge == 382) std::cout << "5:" << result << std::endl;
                 split_occurred |= result;
             }
             

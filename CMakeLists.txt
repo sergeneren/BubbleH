@@ -15,6 +15,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
 get_filename_component(SOURCE_DIR ${CMAKE_SOURCE_DIR}/source ABSOLUTE)
+get_filename_component(IMG_DIR ${CMAKE_SOURCE_DIR}/img ABSOLUTE)
 get_filename_component(LOS_TOPOS_DIR ${CMAKE_SOURCE_DIR}/thirdparty/LosTopos ABSOLUTE)
 
 # Find required packages 

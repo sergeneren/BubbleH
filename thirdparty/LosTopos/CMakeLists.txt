@@ -1,7 +1,6 @@
 add_definitions(-DUSE_FORTRAN_BLAS)
 
 file (GLOB_RECURSE Headers "${LOS_TOPOS_DIR}/*.h" )
-
 file (GLOB_RECURSE Sources "${LOS_TOPOS_DIR}/*.cpp" )
 
 

@@ -1167,7 +1167,7 @@ void SurfTrack::improve_mesh( )
         
         while (m_t1_transition_enabled && m_t1transition.t1_pass())
         {
-            std::cout << "T1's\n";
+            //std::cout << "T1's\n";
             if (m_mesheventcallback)
                 m_mesheventcallback->log() << "T1 pass " << i << " finished" << std::endl;
             i++;
