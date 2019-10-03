@@ -1,6 +1,6 @@
 # Bubble<sup>H</sup>
 
-Bubble<sup>H</sup> is an implementation of siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/) in Sidefx Houdini. It solves soap film surfaces in a SOP node by a conversion between Houdini geometry and LosTopos mesh. 
+Bubble<sup>H</sup> is an implementation of siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/) in Sidefx Houdini. It solves the soap film surfaces in a SOP node by using the surface tracker provided by the SoapFilm3D repo and a conversion between Houdini geometry and LosTopos mesh. 
  
 
 ### Release Notes
@@ -33,7 +33,9 @@ The houdini directory is hard coded for Houdini 17.5.327. You can change the "ho
 
 After configuring, generate the visual studio solution. Build the solution with release configuration. Houdini cmake will assure the resulting dll's are installed under your %HOME%/%HOUDINI_VERSION%/dso folder. You can open houdini and start using SOP node "Soap Film". An icon for the node will also be placed automatically under %HOME%/%HOUDINI_VERSION%/config/Icons  
 
-Please take a look at the provided .hiplc files under "scenes" folder for examples. 
+
+## Usage
+Soap Film node expects some attributes to be created by the user before solving. Please take a look at the provided .hiplc files under "scenes" folder for examples. 
 
 
 ## Author
