@@ -27,7 +27,7 @@ The following libraries are required for Bubble<sup>H</sup> to be compiled. You 
 ### Compilation
 This repository is only tested under Windows 10 and Visual Studio 2017. Compilation for Linux or MAC OS requires testing.    
 
-Bubble<sup>H</sup> expects [vcpkg](https://github.com/Microsoft/vcpkg), Visual Studio 2017 and CMake to be installed. For compilateion use CMake gui to create a build directory and use x64 platform. vcpkg toolchain file must be specified during configuration. If you see a missing library, first install it using vcpkg and configure again. 
+Bubble<sup>H</sup> expects [vcpkg](https://github.com/Microsoft/vcpkg), Visual Studio 2017 and CMake to be installed. For compilation use CMake gui to create a build directory and use x64 platform. vcpkg toolchain file must be specified during configuration. If you see a missing library, first install it using vcpkg and configure again. 
 
 The houdini directory is hard coded for Houdini 17.5.327. You can change the "houdini dir" variable in cmake to find houdini cmake file. 
 
