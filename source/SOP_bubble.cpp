@@ -272,11 +272,10 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 
 	LosTopos::SurfTrack &st =  *(m_vs->surfTrack());
 	vertices = st.get_newpositions();
-	
-	
 
+	//if (gdp->getNumPrimitives() != m_vs->mesh().nt())
 
-	if (gdp->getNumPrimitives() != m_vs->mesh().nt()) { // There is a change in topology 
+	if (true) { // There is a change in topology 
 
 		gdp->clearAndDestroy();
 
@@ -315,7 +314,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 			// Connect vertices
 			for (size_t i = 0; i < 3; ++i) {
 
-				gdp->getTopology().wireVertexPoint(start_vtxoff + i, start_ptoff + indices[i]);
+				gdp->getTopology().wireVertexPoint(start_vtxoff + i, start_ptoff + indices[2-i]);
 
 			}
 			
