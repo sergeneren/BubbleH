@@ -29,7 +29,9 @@ Bubble<sup>H</sup> expects [vcpkg](https://github.com/Microsoft/vcpkg), Visual S
 
 The houdini directory is hard coded for Houdini 17.5.327. You can change the "houdini dir" variable in cmake to find houdini cmake file. 
 
-After configuring, generate the visual studio solution. Build the solution with release configuration. Houdini cmake will assure the resulting dll's are installed under your %HOME%/dso folder. You can open houdini and start using SOP node "Soap Film". 
+After configuring, generate the visual studio solution. Build the solution with release configuration. Houdini cmake will assure the resulting dll's are installed under your %HOME%/%HOUDINI_VERSION%/dso folder. You can open houdini and start using SOP node "Soap Film". 
+
+After building the "Soap Film" dll, please copy the "SOP_sop_bubble.svg" to %HOME%/%HOUDINI_VERSION%/config/Icons folder  
 
 Please take a look at the provided .hiplc files under "scenes" folder for examples. 
 
