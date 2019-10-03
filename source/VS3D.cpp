@@ -280,28 +280,6 @@ double VS3D::step(double dt)
         }
     }
     
-//    // shift all Gamma to have zero mean. it may prevent cancellation errors and help with stability.
-//    for (int region = 0; region < m_nregion; region++)
-//    {
-//        double mean_Gamma = 0;
-//        for (size_t i = 0; i < mesh().nv(); i++)
-//            mean_Gamma += (*m_Gamma)[i][region];
-//        mean_Gamma /= mesh().nv();
-//        for (size_t i = 0; i < mesh().nv(); i++)
-//            (*m_Gamma)[i][region] -= mean_Gamma;
-//    }
-    
-//    // shift all Gammas on each given vertes to have zero mean. this is justifiable because only the pairwise Gamma differences between adjacent regions, not the Gamma values themselves, matter.
-//    for (size_t i = 0; i < mesh().nv(); i++)
-//    {
-//        double mean_Gamma = 0;
-//        for (int region = 0; region < m_nregion; region++)
-//            mean_Gamma += (*m_Gamma)[i][region];
-//        mean_Gamma /= m_nregion;
-//        for (int region = 0; region < m_nregion; region++)
-//            (*m_Gamma)[i][region] -= mean_Gamma;
-//    }
-    
     // shift all Gammas for each region pair to their global mean
     MatXd means(m_nregion, m_nregion);
     means.setZero();
@@ -345,50 +323,7 @@ double VS3D::step(double dt)
             (*m_Gamma)[i].set(rp, (*m_Gamma)[i].get(rp) - means(rp[0], rp[1]));
         }
     }
-    
-    
-//    // open boundary
-//    for (size_t i = 0; i < mesh().nv(); i++)
-//        if (mesh().m_is_boundary_vertex[i])
-//            (*m_Gamma)[i] = 0;
-    
-    
-    // volume gradient projection
-//    VecXd x0 = VecXd::Zero(mesh().nv() * 3);
-//    VecXd dx = VecXd::Zero(mesh().nv() * 3);
-//    for (size_t i = 0; i < mesh().nv(); i++)
-//    {
-//        x0.segment<3>(i * 3) = vc(m_st->pm_positions[i]);
-//        dx.segment<3>(i * 3) = vc(m_st->pm_newpositions[i] - m_st->pm_positions[i]);
-//    }
-//    
-//    Vec3d ref(0, 0, 0);
-//    for (size_t i = 0; i < mesh().nv(); i++)
-//        ref += vc(m_st->pm_positions[i]);
-//    ref /= mesh().nv();
-//    
-//    VecXd gradV = VecXd::Zero(mesh().nv() * 3);
-//    for (size_t i = 0; i < mesh().nt(); i++)
-//    {
-//        const LosTopos::Vec3st & t = mesh().get_triangle(i);
-//        Vec3d x0 = vc(m_st->pm_positions[t[0]]);
-//        Vec3d x1 = vc(m_st->pm_positions[t[1]]);
-//        Vec3d x2 = vc(m_st->pm_positions[t[2]]);
-//        if (mesh().get_triangle_label(i)[1] == 0)
-//            std::swap(x0, x1);
-//        
-//        gradV.segment<3>(t[0] * 3) += (x1 - ref).cross(x2 - ref);
-//        gradV.segment<3>(t[1] * 3) += (x2 - ref).cross(x0 - ref);
-//        gradV.segment<3>(t[2] * 3) += (x0 - ref).cross(x1 - ref);
-//    }
-//    
-//    dx = dx - gradV.dot(dx) * gradV / gradV.squaredNorm();
-//    VecXd xnew = x0 + dx;
-//    for (size_t i = 0; i < mesh().nv(); i++)
-//    {
-//        m_st->pm_newpositions[i] = vc(xnew.segment<3>(i * 3));
-//    }
-    
+        
 
     // damping by smoothing
     if (true)
@@ -441,125 +376,12 @@ double VS3D::step(double dt)
         for (size_t i = 0; i < mesh().nv(); i++)
             (*m_Gamma)[i] = newGamma[i];
     }
-    
-//    if (true)
-//    {
-//        for (size_t i = 0; i < mesh().nv(); i++)
-//        {
-//            std::vector<double> newGamma = (*m_Gamma)[i];
-//
-//            std::set<int> regions;
-//            for (size_t j = 0; j < mesh().m_vertex_to_triangle_map[i].size(); j++)
-//            {
-//                LosTopos::Vec2i l = mesh().get_triangle_label(mesh().m_vertex_to_triangle_map[i][j]);
-//                regions.insert(l[0]);
-//                regions.insert(l[1]);
-//            }
-//            
-//            std::vector<std::pair<int, int> > region_pairs;
-//            for (std::set<int>::iterator j = regions.begin(); j != regions.end(); j++)
-//                for (std::set<int>::iterator k = regions.begin(); k != j; k++)
-//                    region_pairs.push_back(std::pair<int, int>(*j, *k));
-//            
-//            for (size_t k = 0; k < region_pairs.size(); k++)
-//            {
-//                std::pair<int, int> rp = region_pairs[k];
-//                double neighborhood_mean = 0;
-//                int neighborhood_counter = 0;
-//                for (size_t j = 0; j < mesh().m_vertex_to_edge_map[i].size(); j++)
-//                {
-//                    size_t ei = mesh().m_vertex_to_edge_map[i][j];
-//                    LosTopos::Vec2st e = mesh().m_edges[ei];
-//                    size_t vother = (e[0] == i ? e[1] : e[0]);
-//                    
-//                    bool incident_to_region_pair = false;
-//                    for (size_t l = 0; l < mesh().m_edge_to_triangle_map[ei].size(); l++)
-//                    {
-//                        LosTopos::Vec2i label = mesh().get_triangle_label(mesh().m_edge_to_triangle_map[ei][l]);
-//                        if ((label[0] == rp.first && label[1] == rp.second) || (label[0] == rp.second && label[1] == rp.first))
-//                        {
-//                            incident_to_region_pair = true;
-//                            break;
-//                        }
-//                    }
-//
-//                    if (incident_to_region_pair)
-//                    {
-//                        neighborhood_mean += (*m_Gamma)[vother][rp.first] - (*m_Gamma)[vother][rp.second];
-//                        neighborhood_counter++;
-//                    }
-//                }
-//                if (neighborhood_counter == 0)
-//                    neighborhood_mean = 0;
-//                else
-//                    neighborhood_mean /= neighborhood_counter;
-//                
-//                double old_diff = (*m_Gamma)[i][rp.first] - (*m_Gamma)[i][rp.second];
-//                newGamma[rp.first]  += (neighborhood_mean - old_diff) / 2 * simOptions().smoothing_coef * dt;
-//                newGamma[rp.second] -= (neighborhood_mean - old_diff) / 2 * simOptions().smoothing_coef * dt;
-//            }
-//            
-//            (*m_Gamma)[i] = newGamma;
-//        }
-//    }
-//    
-//    if (false)
-//    {
-//        for (int region = 0; region < m_nregion; region++)
-//        {
-//            std::vector<double> newGamma(mesh().nv(), 0);
-//            for (size_t i = 0; i < mesh().nv(); i++)
-//            {
-//                double neighborhood_mean_Gamma = 0;
-//                int neighborhood_counter = 0;
-//                for (size_t j = 0; j < mesh().m_vertex_to_edge_map[i].size(); j++)
-//                {
-//                    LosTopos::Vec2st e = mesh().m_edges[mesh().m_vertex_to_edge_map[i][j]];
-//                    
-//                    bool incident_to_region = false;
-//                    for (size_t k = 0; k < mesh().m_edge_to_triangle_map[mesh().m_vertex_to_edge_map[i][j]].size(); k++)
-//                    {
-//                        LosTopos::Vec2i l = mesh().get_triangle_label(mesh().m_edge_to_triangle_map[mesh().m_vertex_to_edge_map[i][j]][k]);
-//                        if (l[0] == region || l[1] == region)
-//                        {
-//                            incident_to_region = true;
-//                            break;
-//                        }
-//                    }
-//                    incident_to_region = true;
-//                    
-//                    if (incident_to_region)
-//                    {
-//                        size_t vother = (e[0] == i ? e[1] : e[0]);
-//                        neighborhood_mean_Gamma += (*m_Gamma)[vother][region];
-//                        neighborhood_counter++;
-//                    }
-//                }
-//                neighborhood_mean_Gamma /= neighborhood_counter;
-//
-//                newGamma[i] = (*m_Gamma)[i][region] + (neighborhood_mean_Gamma - (*m_Gamma)[i][region]) * simOptions().smoothing_coef * dt;
-//            }
-//            
-//            for (size_t i = 0; i < mesh().nv(); i++)
-//                (*m_Gamma)[i][region] = newGamma[i];
-//        }
-//    }
-    
-    
+  
     
     // before enforcing constraints, first scan through the mesh to find any solid vertices not registered as constraints. they can appear due to remeshing (splitting an all-solid edge)
     std::vector<int> constrained_vertices_map(mesh().nv(), -1);
     for (size_t i = 0; i < m_constrained_vertices.size(); i++)
         constrained_vertices_map[m_constrained_vertices[i]] = i;
-    
-/*    for (size_t i = 0; i < mesh().nv(); i++)
-    {
-        if (m_st->vertex_is_any_solid(i) && constrained_vertices_map[i] < 0)
-        {
-            m_constrained_vertices.push_back(i);
-            m_constrained_positions.push_back(pos(i));
-        }
-    }*/
   
 
     // contruct the open boudnary extra faces
@@ -572,7 +394,6 @@ double VS3D::step(double dt)
     {
         if (surfTrack()->edge_is_all_solid(i))  // this is a constrained edge
         {
-            //assert(mesh().m_edge_to_triangle_map[i].size() == 2);
             if(mesh().m_edge_to_triangle_map[i].size() == 2) {
             
                 size_t f0 = mesh().m_edge_to_triangle_map[i][0];
@@ -660,7 +481,6 @@ double VS3D::step(double dt)
         for (size_t i = 0; i < nob; i++)
             obrhs[i] = (m_constrained_positions[constrained_vertices_map[obv[i]]] - vc(surfTrack()->pm_newpositions[obv[i]])).dot(obvn[i]);
         
-        //    VecXd obefv = obA.partialPivLu().solve(obrhs);
         double oblambda = 0.1;
         VecXd obefv = (obA.transpose() * obA + oblambda * oblambda * MatXd::Identity(nob, nob)).partialPivLu().solve(obA.transpose() * obrhs);   // regularized solve to avoid blowing up in presence of near-dependent constraints
         
@@ -842,10 +662,7 @@ double VS3D::step(double dt)
             std::cout << "Warning: SurfTrack::integrate() failed to step the full length of the time step!" << std::endl;
     }
     
-    
-//    update_dbg_quantities();
-    
-    
+   
     return (counter % 2 == 0 ? 0 : dt);
 }
 
@@ -876,11 +693,9 @@ void VS3D::update_dbg_quantities()
                                  e20 * (*m_Gamma)[t[1]].get(l));
                 
                 Vec3d dx = x - xp;
-//                double dxn = dx.norm();
                 double dxn = sqrt(dx.squaredNorm() + m_delta * m_delta);
                 
                 v += gamma.cross(dx) / (dxn * dxn * dxn);
-//                v += gamma.cross(dx) / (dxn * dxn * dxn) * (1 - exp(-dxn / m_delta));
                 
             }
             
@@ -914,17 +729,13 @@ void VS3D::update_dbg_quantities()
                 }
                 if (incident_faces.size() == 0)
                     continue;
-//                assert(incident_faces.size() == 2);
                 if (incident_faces.size() != 2)
                 {
-//                    std::cout << "Warning: incident_faces.size() != 2" << std::endl;
-//                    std::cout << "e = " << i << " region = " << region << " n = " << incident_faces.size() << ": "; for (size_t k = 0; k < incident_faces.size(); k++) std::cout << mesh().m_edge_to_triangle_map[i][incident_faces[k]] << " "; std::cout << std::endl;
                     curvature[i][region] = 0;
                     continue;
                 }
                 bool nonmanifold = (incident_regions.size() > 2);
                 
-//                assert(mesh().m_edge_to_triangle_map[i].size() == 2);
                 int v0 = mesh().m_edges[i][0];
                 int v1 = mesh().m_edges[i][1];
                 Vec3d x0 = pos(v0);
@@ -955,36 +766,14 @@ void VS3D::update_dbg_quantities()
                 n0.normalize();
                 n1.normalize();
                 
-//                double curvature_i = 0;
-//                if (nonmanifold)
-//                {
-//                    curvature_i = n0.cross(n1).dot(et) / (et.norm() * m_delta); // integral curvature along the curve orghotonal to the edge in plane
-//                } else
-//                {
-//                    curvature_i = n0.cross(n1).dot(et) / edgeArea;
-////                    curvature_i = angleAroundAxis(n0, n1, et) * et.norm() / edgeArea;
-//                }
-                
+               
                 double curvature_i = n0.cross(n1).dot(et);
-//                double curvature_i = (n0 - n1).dot((n0 + n1).normalized().cross(et));
                 
                 
                 curvature[i][region] = curvature_i;
-//                if (region == 1)
-//                    m_dbg_e1[i] = curvature_i;
                 m_dbg_e1[i][region] = curvature_i;
             }
             
-//            for (size_t i = 0; i < mesh().nv(); i++)
-//            {
-//                double mean_curvature = 0;
-//                for (size_t j = 0; j < mesh().m_vertex_to_edge_map[i].size(); j++)
-//                    mean_curvature += curvature[mesh().m_vertex_to_edge_map[i][j]][region];
-//                mean_curvature /= mesh().m_vertex_to_edge_map[i].size();
-//
-//                (*m_Gamma)[i][region] += simOptions().sigma * mean_curvature * dt;
-//                m_dbg_v1[i][region] = mean_curvature;
-//            }
             
             for (size_t i = 0; i < mesh().nv(); i++)
             {
@@ -1029,12 +818,6 @@ void VS3D::update_dbg_quantities()
                         vertex_area += area / 3;
                     }
                 }
-                
-//                if (counter == 0)
-//                    mean_curvature = 0;
-//                else
-////                    mean_curvature = second_fundamental_form.trace() / counter / 3;
-//                    mean_curvature /= counter;
                 
                 mean_curvature = mean_curvature / (vertex_area * 2);
                 
@@ -1600,7 +1383,6 @@ void VS3D::accumulateddUdxdx( TripletXs& A, const VectorXs& dx, const VectorXs& 
     }
 }
 
-// Kind of a misnomer.
 void VS3D::accumulateddUdxdv( TripletXs& A, const VectorXs& dx, const VectorXs& dv )
 {
     const int ndof = m_constrained_positions.size() * 3;

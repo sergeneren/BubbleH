@@ -123,7 +123,7 @@ protected:
     void step_PBD_implicit(double dt);
     
 protected:
-    // SurfTrack::SolidVerticesCallback method
+    // SurfTrack::SolidVerticesCallback methods
     bool            generate_collapsed_position(LosTopos::SurfTrack & st, size_t v0, size_t v1, LosTopos::Vec3d & pos);
     bool            generate_split_position(LosTopos::SurfTrack & st, size_t v0, size_t v1, LosTopos::Vec3d & pos);
     LosTopos::Vec3c generate_collapsed_solid_label(LosTopos::SurfTrack & st, size_t v0, size_t v1, const LosTopos::Vec3c & label0, const LosTopos::Vec3c & label1);
