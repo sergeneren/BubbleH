@@ -196,7 +196,7 @@ namespace
 
 void VS3D::step_explicit(double dt)
 {
-    std::cout << "Explicit time stepping" << std::endl;
+    //std::cout << "Explicit time stepping" << std::endl;
     m_dbg_t1.clear();
     m_dbg_t2.clear();
     m_dbg_e1.clear();
@@ -458,5 +458,5 @@ void VS3D::step_explicit(double dt)
     for (size_t i = 0; i < mesh().nv(); i++)
         (*m_Gamma)[i].values *= pow(simOptions().damping_coef, dt);
     
-    std::cout << "Explicit time stepping finished" << std::endl;
+    //std::cout << "Explicit time stepping finished" << std::endl;
 }

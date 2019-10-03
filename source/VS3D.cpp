@@ -55,7 +55,7 @@ VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs, const std::vector<LosTopos::
     double min_edge_len = mean_edge_len * 0.5;
     double max_edge_len = mean_edge_len * 1.5;
 
-    std::cout << "mean edge length = " << mean_edge_len << " min edge length = " << min_edge_len << " max edge length = " << max_edge_len << std::endl;
+    //std::cout << "mean edge length = " << mean_edge_len << " min edge length = " << min_edge_len << " max edge length = " << max_edge_len << std::endl;
     
     LosTopos::SurfTrackInitializationParameters params;
     params.m_proximity_epsilon = Options::doubleValue("lostopos-collision-epsilon-fraction") * mean_edge_len;

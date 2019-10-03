@@ -751,11 +751,11 @@ void DynamicSurface::integrate( double desired_dt, double& actual_dt )
     
     if ( m_collision_safety )
     {
-      std::cout << "Checking collisions before integration.\n";
+		if (m_verbose) std::cout << "Checking collisions before integration.\n";
       assert_mesh_is_intersection_free( false );
       
     }
-    std::cout << "Integrating\n";
+	if (m_verbose) std::cout << "Integrating\n";
     static const bool DEGEN_DOES_NOT_COUNT = false;   
     static const bool USE_NEW_POSITIONS = true;
     
@@ -884,7 +884,7 @@ void DynamicSurface::integrate( double desired_dt, double& actual_dt )
     static unsigned int step = 0;
     g_stats.add_per_frame_double( "DynamicSurface:integration_time_per_timestep", step, end_time - start_time );
     ++step;
-    std::cout << "Done integrating\n";
+	if(m_verbose) std::cout << "Done integrating\n";
     
 }
 

@@ -1030,9 +1030,9 @@ bool EdgeSplitter::split_pass()
                 if (longest_edge == 382) std::cout << "4" << std::endl;
                 size_t result_vert;
                 
-                std::cout << "trying to split " << longest_edge << ": " << mesh.m_edges[longest_edge] << std::endl;
+                //std::cout << "trying to split " << longest_edge << ": " << mesh.m_edges[longest_edge] << std::endl;
                 bool result = split_edge(longest_edge, result_vert);
-                std::cout << "result = " << result << std::endl;
+                //std::cout << "result = " << result << std::endl;
                 
                 if (longest_edge == 382) std::cout << "5:" << result << std::endl;
                 split_occurred |= result;

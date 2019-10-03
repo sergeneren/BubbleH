@@ -282,6 +282,28 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 
 		GA_Offset start_ptoff = gdp->appendPointBlock(m_vs->mesh().nv());
 		
+		
+		// We have deleted every attribute and primitives. Now we have to create them back 
+		GA_Attribute *temp_face_labels = gdp->findIntArray(GA_ATTRIB_PRIMITIVE, "label", -1, -1);	
+		if (!temp_face_labels) temp_face_labels = gdp->addIntArray(GA_ATTRIB_PRIMITIVE, "label", 1);
+		
+		if (!temp_face_labels)
+		{
+			UT_WorkBuffer           buf;
+			buf.sprintf("Failed to create array attributes \"%s\"", "label");
+			addError(SOP_MESSAGE, buf.buffer());
+			return error();
+		}
+		const GA_AIFNumericArray *aif = temp_face_labels->getAIFNumericArray();
+		if (!aif)
+		{
+			UT_WorkBuffer           buf;
+			buf.sprintf("Attribute \"%s\" not a numeric array!", "label");
+			addError(SOP_MESSAGE, buf.buffer());
+			return error();
+		}
+		
+
 		// for each triangle add a primitive
 		for (size_t pr = 0; pr < m_vs->mesh().nt(); ++pr) { 
 	
@@ -290,16 +312,23 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 						
 			LosTopos::Vec3st indices = m_vs->mesh().get_triangle(pr);
 			
+			// Connect vertices
 			for (size_t i = 0; i < 3; ++i) {
-				
+
 				gdp->getTopology().wireVertexPoint(start_vtxoff + i, start_ptoff + indices[i]);
 
 			}
 			
+			
+			// Write back triangle labels
+			LosTopos::Vec2i triangle_label = m_vs->mesh().get_triangle_label(pr);
+			UT_IntArray data;
+			data.append(triangle_label[0]);
+			data.append(triangle_label[1]);
+			aif->set(temp_face_labels, prim_off, data);
+				
 		}
-		
-		gdp->bumpDataIdsForAddOrRemove(true, true, true); 
-		
+		temp_face_labels->bumpDataId();
 
 		// Set the point positions
 		for (size_t i = 0; i < m_vs->mesh().nv(); ++i) {
@@ -309,22 +338,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		}
 		
 
-		// Set triangle labels 
-		GA_RWHandleIA temp_face_labels(gdp->addIntArray(GA_ATTRIB_PRIMITIVE, "label", 2));
-		GA_Offset prim_offset;
-
-		for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
-			LosTopos::Vec2i triangle_label = m_vs->mesh().get_triangle_label(*prim_it);
-			UT_IntArray data;
-			data.append(triangle_label[0]);
-			data.append(triangle_label[1]);
-
-			temp_face_labels.set(*prim_it, data);
-		}
-			   		 
-		temp_face_labels->bumpDataId();
-
-
+		gdp->bumpDataIdsForAddOrRemove(true, true, true);
 	}
 	else {
 
@@ -337,7 +351,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		pt_pos.bumpDataId();
 
 	}
-
+	
 
 	delete m_vs;
 

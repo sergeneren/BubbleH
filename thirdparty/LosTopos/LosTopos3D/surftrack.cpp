@@ -1137,12 +1137,12 @@ void SurfTrack::improve_mesh( )
         
         
         // edge splitting
-        std::cout << "Splits\n";
+        //std::cout << "Splits\n";
         while ( m_splitter.split_pass() ) {
             if (m_mesheventcallback)
                 m_mesheventcallback->log() << "Split pass " << i << " finished" << std::endl;
             i++;
-            std::cout << "Splits\n";
+            //std::cout << "Splits\n";
         }
         
 //        // edge flipping
@@ -1154,12 +1154,12 @@ void SurfTrack::improve_mesh( )
         
         // edge collapsing
         i = 0;
-        std::cout << "Collapses\n";
+        //std::cout << "Collapses\n";
         while ( m_collapser.collapse_pass() ) {
             if (m_mesheventcallback)
                 m_mesheventcallback->log() << "Collapse pass " << i << " finished" << std::endl;
             i++;
-            std::cout << "Collapses\n";
+            //std::cout << "Collapses\n";
         }
         
         // process t1 transitions (vertex separation)
@@ -1236,7 +1236,7 @@ void SurfTrack::improve_mesh( )
 //        
 //        assert_no_bad_labels();
         
-        std::cout << "Done improvement\n" << std::endl;
+        //std::cout << "Done improvement\n" << std::endl;
         if ( m_collision_safety )
         {
             assert_mesh_is_intersection_free( false );
