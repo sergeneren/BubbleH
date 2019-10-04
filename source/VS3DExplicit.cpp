@@ -194,7 +194,7 @@ namespace
 //#define FANGS_VERSION
 //#define FANGS_PATCHED
 
-void VS3D::step_explicit(double dt)
+void VS3D::step_explicit(double dt, bool rk4)
 {
     //std::cout << "Explicit time stepping" << std::endl;
     m_dbg_t1.clear();
@@ -433,10 +433,9 @@ void VS3D::step_explicit(double dt)
         }
     }
     
-    
     // Biot-Savart integral based on vortex sheet strength gamma: Stock 2006, Eq. 2.26
     VecXd v;
-    if (Options::boolValue("RK4-velocity-integration"))
+    if (rk4)
     {
         // RK4 integration
         VecXd v1 = BiotSavart(*this, VecXd::Zero(mesh().nv() * 3));

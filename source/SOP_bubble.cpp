@@ -149,8 +149,7 @@ OP_Node * SOP_bubble::myConstructor(OP_Network *net, const char *name, OP_Operat
 
 SOP_bubble::SOP_bubble(OP_Network *net, const char *name, OP_Operator *op) : SOP_Node(net, name, op)
 {
-
-	//mySopFlags.setManagesDataIDs(true); 
+	mySopFlags.setManagesDataIDs(true); 
 
 }
 
@@ -165,54 +164,83 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	addMessage(SOP_MESSAGE, "Soap Bubble Simulator"); 
 	
 	fpreal t = context.getTime();
+	flags().setTimeDep(1);
 	MeshIO meshio; 
 
+	fpreal dt = DT(t); 
+	size_t imp = IMP(t);
+	size_t pbd = PBD(t); 
+	size_t rk = RK4(t); 
+	fpreal sc = SC(t); 
+	fpreal dc = DC(t); 
+	fpreal sigma = SIGMA(t); 
+	fpreal rad = RAD(t); 
+	fpreal strech = STRECH(t); 
+	fpreal bend = BEND(t); 
+	
+	fpreal rem_res = REMESH_RES(t); 
+	size_t rem_iter = REMESH_ITE(t);
+
+
+	fpreal coll_eps = COLL_EPS(t); 
+	fpreal merge_eps = MERGE_EPS(t);
+	size_t smooth = SMOOTH(t);
+	fpreal vc = VC_F(t);
+	fpreal min_tri_ang = MIN_TRI_ANG(t);
+	fpreal max_tri_ang = MAX_TRI_ANG(t);
+	fpreal lar_tri_ang = LAR_TRI_ANG(t);
+	fpreal min_tri_area = MIN_TRI_AREA(t);
+	size_t t1_trans = T1_TRANS(t);
+	fpreal t1_pull = T1_PULL(t);
+	size_t lt_sm_sbd = LT_SM_SBD(t);
+
+
 	// Parse options
-	Options::addStringOption("scene", "T1");
-	Options::addStringOption("load-dir", "");
-	Options::addDoubleOption("timestep", DT(t));
-	Options::addDoubleOption("simulation-time", 1.0);
-	Options::addBooleanOption("implicit-integration", IMP(t));
-	Options::addBooleanOption("pbd-implicit", PBD(t));
-	Options::addBooleanOption("RK4-velocity-integration", RK4(t));
-	Options::addDoubleOption("smoothing-coef", SC(t));
-	Options::addDoubleOption("damping-coef", DC(t));
-	Options::addDoubleOption("sigma", SIGMA(t));
-	Options::addDoubleOption("gravity", 0.0);
-	Options::addBooleanOption("fmmtl", false);
-	Options::addBooleanOption("looped", true);
-	Options::addDoubleOption("radius", RAD(t));
-	Options::addDoubleOption("density", 1.32e3);
-	Options::addDoubleOption("stretching", STRECH(t));
-	Options::addDoubleOption("bending", BEND(t));
+
+	Options sim_options;
+	
+	sim_options.addStringOption("scene", "T1");
+	sim_options.addStringOption("load-dir", "");
+	sim_options.addDoubleOption("timestep",dt);
+	sim_options.addDoubleOption("simulation-time", 1.0);
+	sim_options.addBooleanOption("implicit-integration", imp);
+	sim_options.addBooleanOption("pbd-implicit", pbd);
+	sim_options.addBooleanOption("RK4-velocity-integration", rk);
+	sim_options.addDoubleOption("smoothing-coef",sc);
+	sim_options.addDoubleOption("damping-coef", dc);
+	sim_options.addDoubleOption("sigma", sigma);
+	sim_options.addDoubleOption("gravity", 0.0);
+	sim_options.addBooleanOption("fmmtl", false);
+	sim_options.addBooleanOption("looped", true);
+	sim_options.addDoubleOption("radius",rad);
+	sim_options.addDoubleOption("density", 1.32e3);
+	sim_options.addDoubleOption("stretching", strech);
+	sim_options.addDoubleOption("bending", bend);
 
 
-	Options::addDoubleOption("remeshing-resolution", REMESH_RES(t));
-	Options::addIntegerOption("remeshing-iterations", REMESH_ITE(t));
+	sim_options.addDoubleOption("remeshing-resolution", rem_res);
+	sim_options.addIntegerOption("remeshing-iterations", rem_iter);
 
 
-	Options::addDoubleOption("lostopos-collision-epsilon-fraction", COLL_EPS(t));			// lostopos collision epsilon (fraction of mean edge length)
-	Options::addDoubleOption("lostopos-merge-proximity-epsilon-fraction", MERGE_EPS(t));	// lostopos merge proximity epsilon (fraction of mean edge length)
-	Options::addBooleanOption("lostopos-perform-smoothing", SMOOTH(t));						// whether or not to perform smoothing
-	Options::addDoubleOption("lostopos-max-volume-change-fraction", VC_F(t));				// maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
-	Options::addDoubleOption("lostopos-min-triangle-angle", MIN_TRI_ANG(t));                // min triangle angle (in degrees)
-	Options::addDoubleOption("lostopos-max-triangle-angle", MAX_TRI_ANG(t));				// max triangle angle (in degrees)
-	Options::addDoubleOption("lostopos-large-triangle-angle-to-split", LAR_TRI_ANG(t));		// threshold for large angles to be split
-	Options::addDoubleOption("lostopos-min-triangle-area-fraction", MIN_TRI_AREA(t));       // minimum allowed triangle area (fraction of mean edge length squared)
-	Options::addBooleanOption("lostopos-t1-transition-enabled", T1_TRANS(t));				// whether t1 is enabled
-	Options::addDoubleOption("lostopos-t1-pull-apart-distance-fraction", T1_PULL(t));		// t1 pull apart distance (fraction of mean edge legnth)
-	Options::addBooleanOption("lostopos-smooth-subdivision", LT_SM_SBD(t));					// whether to use smooth subdivision during remeshing
-	Options::addBooleanOption("lostopos-allow-non-manifold", true);							// whether to allow non-manifold geometry in the mesh
-	Options::addBooleanOption("lostopos-allow-topology-changes", true);						// whether to allow topology changes
-
-	Options::addIntegerOption("mesh-size-n", 2);
-	Options::addIntegerOption("mesh-size-m", 2);
+	sim_options.addDoubleOption("lostopos-collision-epsilon-fraction", coll_eps);				// lostopos collision epsilon (fraction of mean edge length)
+	sim_options.addDoubleOption("lostopos-merge-proximity-epsilon-fraction", merge_eps);		// lostopos merge proximity epsilon (fraction of mean edge length)
+	sim_options.addBooleanOption("lostopos-perform-smoothing", smooth);						// whether or not to perform smoothing
+	sim_options.addDoubleOption("lostopos-max-volume-change-fraction", vc);					// maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
+	sim_options.addDoubleOption("lostopos-min-triangle-angle", min_tri_ang);					// min triangle angle (in degrees)
+	sim_options.addDoubleOption("lostopos-max-triangle-angle", max_tri_ang);					// max triangle angle (in degrees)
+	sim_options.addDoubleOption("lostopos-large-triangle-angle-to-split", lar_tri_ang);		// threshold for large angles to be split
+	sim_options.addDoubleOption("lostopos-min-triangle-area-fraction", min_tri_area);			// minimum allowed triangle area (fraction of mean edge length squared)
+	sim_options.addBooleanOption("lostopos-t1-transition-enabled", t1_trans);					// whether t1 is enabled
+	sim_options.addDoubleOption("lostopos-t1-pull-apart-distance-fraction", t1_pull);			// t1 pull apart distance (fraction of mean edge legnth)
+	sim_options.addBooleanOption("lostopos-smooth-subdivision", lt_sm_sbd);					// whether to use smooth subdivision during remeshing
+	sim_options.addBooleanOption("lostopos-allow-non-manifold", true);							// whether to allow non-manifold geometry in the mesh
+	sim_options.addBooleanOption("lostopos-allow-topology-changes", true);						// whether to allow topology changes
 
 
-
+		
 	// Create surface tracker
 
-	VS3D *m_vs = meshio.build_tracker(gdp); 
+	VS3D *m_vs = meshio.build_tracker(gdp, sim_options); 
 	if (!m_vs) {
 		UT_WorkBuffer buf;
 		buf.sprintf("Unable to create surface tracker!");
@@ -220,9 +248,12 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		return error();
 	}
 
-	// Integrate positions
-	m_vs->step(DT(t));
 
+	
+	// Integrate positions
+	m_vs->step(dt);
+	   
+	
 	// Convert surface tracker mesh back to houdini geo
 	bool success = meshio.convert_to_houdini_geo(gdp, m_vs); 
 
@@ -234,7 +265,11 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	}
 	
 	delete m_vs;
+
+
 	
+
+
 	return error();
 }
 

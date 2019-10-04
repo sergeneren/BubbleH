@@ -16,6 +16,8 @@
 #include "MathDefs.h"
 #include "Force.h"
 #include "SceneStepper.h"
+#include "SimOptions.h"
+
 
 class Sim;
 class Scenes;
@@ -29,8 +31,17 @@ class VS3D : public LosTopos::SurfTrack::SolidVerticesCallback, public LosTopos:
     friend VecXd BiotSavart_fmmtl(VS3D & vs, const VecXd & dx);
     
 public:
-    VS3D(const std::vector<LosTopos::Vec3d> & vs, const std::vector<LosTopos::Vec3st> & fs, const std::vector<LosTopos::Vec2i> & ls, const std::vector<size_t> & constrained_vertices = std::vector<size_t>(),  const std::vector<Vec3d> & constrained_positions = std::vector<Vec3d>(), const std::vector<Vec3d> & constrained_velocities = std::vector<Vec3d>(), const std::vector<unsigned char> & constrained_fixed = std::vector<unsigned char>());
-    ~VS3D();
+    VS3D(const std::vector<LosTopos::Vec3d> & vs,
+		const std::vector<LosTopos::Vec3st> & fs,
+		const std::vector<LosTopos::Vec2i> & ls,
+		Options opts,
+		const std::vector<size_t> & constrained_vertices = std::vector<size_t>(),
+		const std::vector<Vec3d> & constrained_positions = std::vector<Vec3d>(),
+		const std::vector<Vec3d> & constrained_velocities = std::vector<Vec3d>(),
+		const std::vector<unsigned char> & constrained_fixed = std::vector<unsigned char>());
+    
+		
+	~VS3D();
     
     class SimOptions
     {
@@ -46,8 +57,10 @@ public:
         double density;
         double stretching;
         double bending;
+		int iter;
+		bool rk4;
 
-        SimOptions() : implicit(false), pbd(false), smoothing_coef(0), damping_coef(1), sigma(1), gravity(0)
+        SimOptions() : implicit(false), pbd(false), smoothing_coef(0), damping_coef(1), sigma(1), gravity(0), iter(0), rk4(0)
         { }
     };
     
@@ -119,7 +132,7 @@ public:
           GammaType & Gamma(size_t v)       { return (*m_Gamma)[v]; }
     
 protected:
-    void step_explicit(double dt);
+    void step_explicit(double dt, bool rk4);
     void step_implicit(double dt);
     void step_PBD_implicit(double dt);
     

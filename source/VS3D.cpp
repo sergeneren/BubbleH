@@ -32,23 +32,31 @@ Vec3d VS3D::get_velocity(int v) {
 }
 
 
-VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs, const std::vector<LosTopos::Vec3st> & fs, const std::vector<LosTopos::Vec2i> & ls, const std::vector<size_t> & constrained_vertices,  const std::vector<Vec3d> & constrained_positions, const std::vector<Vec3d> & constrained_velocities, const std::vector<unsigned char> & constrained_fixed)
+VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs, 
+	const std::vector<LosTopos::Vec3st> & fs, 
+	const std::vector<LosTopos::Vec2i> & ls, 
+	Options opts,
+	const std::vector<size_t> & constrained_vertices,  
+	const std::vector<Vec3d> & constrained_positions, 
+	const std::vector<Vec3d> & constrained_velocities, 
+	const std::vector<unsigned char> & constrained_fixed)
 {
     // load sim options
-    m_sim_options.implicit = Options::boolValue("implicit-integration");
-    m_sim_options.pbd = Options::boolValue("pbd-implicit");
-    m_sim_options.smoothing_coef = Options::doubleValue("smoothing-coef");
-    m_sim_options.damping_coef = Options::doubleValue("damping-coef");
-    m_sim_options.sigma = Options::doubleValue("sigma");
-    m_sim_options.gravity = Options::doubleValue("gravity");
-    m_sim_options.looped = Options::boolValue("looped");
-    m_sim_options.radius = Options::doubleValue("radius");
-    m_sim_options.density = Options::doubleValue("density");
-    m_sim_options.stretching = Options::doubleValue("stretching");
-    m_sim_options.bending = Options::doubleValue("bending");
-
+    m_sim_options.implicit = opts.boolValue("implicit-integration");
+    m_sim_options.pbd = opts.boolValue("pbd-implicit");
+    m_sim_options.smoothing_coef = opts.doubleValue("smoothing-coef");
+    m_sim_options.damping_coef = opts.doubleValue("damping-coef");
+    m_sim_options.sigma = opts.doubleValue("sigma");
+    m_sim_options.gravity = opts.doubleValue("gravity");
+    m_sim_options.looped = opts.boolValue("looped");
+    m_sim_options.radius = opts.doubleValue("radius");
+    m_sim_options.density = opts.doubleValue("density");
+    m_sim_options.stretching = opts.doubleValue("stretching");
+    m_sim_options.bending = opts.doubleValue("bending");
+	m_sim_options.rk4 = opts.boolValue("RK4-velocity-integration");
     // construct the surface tracker
-    double mean_edge_len = Options::doubleValue("remeshing-resolution");
+    double mean_edge_len = opts.doubleValue("remeshing-resolution");
+	m_sim_options.iter = opts.intValue("remeshing-iterations");
     if (mean_edge_len == 0)
     {
         for (size_t i = 0; i < fs.size(); i++)
@@ -65,28 +73,29 @@ VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs, const std::vector<LosTopos::
     //std::cout << "mean edge length = " << mean_edge_len << " min edge length = " << min_edge_len << " max edge length = " << max_edge_len << std::endl;
     
     LosTopos::SurfTrackInitializationParameters params;
-    params.m_proximity_epsilon = Options::doubleValue("lostopos-collision-epsilon-fraction") * mean_edge_len;
-    params.m_merge_proximity_epsilon = Options::doubleValue("lostopos-merge-proximity-epsilon-fraction") * mean_edge_len;
+    params.m_proximity_epsilon = opts.doubleValue("lostopos-collision-epsilon-fraction") * mean_edge_len;
+    params.m_merge_proximity_epsilon = opts.doubleValue("lostopos-merge-proximity-epsilon-fraction") * mean_edge_len;
     params.m_allow_vertex_movement_during_collapse = true;
-    params.m_perform_smoothing = Options::boolValue("lostopos-perform-smoothing");
+    params.m_perform_smoothing = opts.boolValue("lostopos-perform-smoothing");
     params.m_min_edge_length = min_edge_len;
     params.m_max_edge_length = max_edge_len;
-    params.m_max_volume_change = Options::doubleValue("lostopos-max-volume-change-fraction") * pow(mean_edge_len, 3);
-    params.m_min_triangle_angle = Options::doubleValue("lostopos-min-triangle-angle");
-    params.m_max_triangle_angle = Options::doubleValue("lostopos-max-triangle-angle");
-    params.m_large_triangle_angle_to_split = Options::doubleValue("lostopos-large-triangle-angle-to-split");
-    params.m_min_triangle_area = Options::doubleValue("lostopos-min-triangle-area-fraction") * pow(mean_edge_len, 2);
+    params.m_max_volume_change = opts.doubleValue("lostopos-max-volume-change-fraction") * pow(mean_edge_len, 3);
+    params.m_min_triangle_angle = opts.doubleValue("lostopos-min-triangle-angle");
+    params.m_max_triangle_angle = opts.doubleValue("lostopos-max-triangle-angle");
+    params.m_large_triangle_angle_to_split = opts.doubleValue("lostopos-large-triangle-angle-to-split");
+    params.m_min_triangle_area = opts.doubleValue("lostopos-min-triangle-area-fraction") * pow(mean_edge_len, 2);
     params.m_verbose = false;
-    params.m_allow_non_manifold = Options::boolValue("lostopos-allow-non-manifold");
-    params.m_allow_topology_changes = Options::boolValue("lostopos-allow-topology-changes");
+    params.m_allow_non_manifold = opts.boolValue("lostopos-allow-non-manifold");
+    params.m_allow_topology_changes = opts.boolValue("lostopos-allow-topology-changes");
     params.m_collision_safety = true;
     params.m_remesh_boundaries = true;
-    params.m_t1_transition_enabled = Options::boolValue("lostopos-t1-transition-enabled");
-    params.m_pull_apart_distance = Options::doubleValue("lostopos-t1-pull-apart-distance-fraction") * mean_edge_len;
+    params.m_t1_transition_enabled = opts.boolValue("lostopos-t1-transition-enabled");
+    params.m_pull_apart_distance = opts.doubleValue("lostopos-t1-pull-apart-distance-fraction") * mean_edge_len;
     
     params.m_velocity_field_callback = NULL;
-    
-    if (Options::boolValue("lostopos-smooth-subdivision"))
+
+
+    if (opts.boolValue("lostopos-smooth-subdivision"))
         params.m_subdivision_scheme = new LosTopos::ModifiedButterflyScheme();
     else
         params.m_subdivision_scheme = new LosTopos::MidpointScheme();
@@ -256,11 +265,10 @@ double VS3D::step(double dt)
 {
     static int counter = 0;
     counter++;
-    
     if (counter % 2 == 0)
     {
         // mesh improvement
-        for(int i = 0; i < Options::intValue("remeshing-iterations"); i++)
+        for(int i = 0; i < m_sim_options.iter; i++)
         {
             m_st->topology_changes();
             m_st->improve_mesh();
@@ -283,7 +291,7 @@ double VS3D::step(double dt)
                 step_implicit(dt);
         } else
         {
-            step_explicit(dt);
+            step_explicit(dt, m_sim_options.rk4);
         }
     }
     

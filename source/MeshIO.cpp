@@ -11,12 +11,12 @@
 
 
 #include "MeshIO.h"
-
+#include "SimOptions.h"
 #include <GU/GU_Detail.h>
 
 
 
-VS3D * MeshIO::build_tracker(const GU_Detail *gdp) {
+VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 
 
 	std::vector<LosTopos::Vec3d> vertices;
@@ -58,24 +58,23 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp) {
 	GA_OffsetArray neighbour_prims;
 	GA_Offset prim_offset;
 	const GA_Primitive *prim;
-	GA_Offset goff;
 	GA_ROHandleIA face_label(gdp, GA_ATTRIB_PRIMITIVE, "label");
 
 	for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
 		gdp->getEdgeAdjacentPolygons(neighbour_prims, prim_it.getOffset());
 		prim = gdp->getPrimitive(prim_it.getOffset());
-		pt_range = prim->getPointRange();
+		GA_Range prim_pt_range = prim->getPointRange();
 
 		std::vector<GA_Offset> pt_offsets;
 
-		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
+		for (GA_Iterator it(prim_pt_range.begin()); !it.atEnd(); ++it) {
 			pt_offsets.push_back(*it);
 		}
 
 		faces.push_back(LosTopos::Vec3st(pt_offsets[2], pt_offsets[1], pt_offsets[0]));
 
 		if (face_label.isValid()) {
-			UT_Int32Array labels;
+			UT_IntArray labels;
 			face_label.get(prim_it.getOffset(), labels);
 			face_labels.push_back(LosTopos::Vec2i(labels[0], labels[1]));
 		}
@@ -83,19 +82,48 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp) {
 		else face_labels.push_back(LosTopos::Vec2i(1, 0));
 	}
 
-	return new VS3D(vertices, faces, face_labels, constrained_vertices, constrained_positions, constrained_velocities);
+	VS3D *m_vs = new VS3D(vertices, faces, face_labels, sim_options, constrained_vertices, constrained_positions, constrained_velocities);
+	
+	m_vs->simOptions().bending = 0.025;
+	// Check if gamma values exist. If there is one, it means this is not the first frame 
+	const GA_Attribute *gamma_attrib = gdp->findFloatArray(GA_ATTRIB_POINT, "Gamma", -1, -1);
+	if(gamma_attrib){ 
+		
+		const GA_AIFNumericArray *gamma_aif = gamma_attrib->getAIFNumericArray();
+		if (!gamma_aif)
+		{
+			//There is a gamma attribute but it's not a float array  
+			return NULL;
+		}
 
 
+
+		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
+
+			UT_Array<fpreal64> data; 
+			gamma_aif->get(gamma_attrib, it.getOffset(), data);
+			
+			size_t n = m_vs->nregion();
+			for (int j = 0; j < m_vs->Gamma(*it).values.rows(); j++) {
+				for (int k = 0; k < m_vs->Gamma(*it).values.cols(); k++) {
+					fpreal64 val = data[(j*n)+k];
+					m_vs->Gamma(*it).set(j, k, val);
+
+				}
+			}
+
+		}
+	
+	}
+
+
+	return m_vs;
 }
 
 
 bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 	std::vector<LosTopos::Vec3d> vertices;
-	std::vector<LosTopos::Vec3st> faces;
-	std::vector<LosTopos::Vec2i> face_labels;
-	std::vector<size_t> constrained_vertices;
-	std::vector<Vec3d> constrained_positions;
 
 	const LosTopos::SurfTrack &st = *(tracker->surfTrack());
 	vertices = st.get_newpositions();
@@ -175,12 +203,12 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 	GA_RWHandleV3 mass_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "mass", 3));
 	GA_RWHandleV3 vel_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "v", 3));
 
-	GA_Offset ptoff;
+	
 	tracker->update_dbg_quantities();
 
 	for (size_t i = 0; i < tracker->mesh().nv(); ++i) {
 
-		ptoff = start_ptoff + i; 
+		GA_Offset ptoff = start_ptoff + i;
 
 		LosTopos::Vec3d new_pos = vertices[i];
 		gdp->setPos3(ptoff, UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
@@ -196,19 +224,20 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 			for (int k = 0; k < tracker->Gamma(i).values.cols(); k++) {
 
 				data.append(tracker->Gamma(i).values(j,k));
-
+				
 			}
 		}
 		gamma_aif->set(gamma_attrib, ptoff,data);
 
 	}
+	gamma_attrib->bumpDataId();
+	vel_h.bumpDataId();
+	mass_h.bumpDataId();
 
 
 	gdp->bumpDataIdsForAddOrRemove(true, true, true);
 
 	return true;
-
-
 }
 
 
