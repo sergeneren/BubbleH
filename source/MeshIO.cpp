@@ -114,7 +114,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 	if (!temp_face_labels)
 	{
-		//Failed to create array attribute
+		//Failed to create face label attribute
 		return false;
 	}
 
@@ -125,6 +125,24 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		return false;
 	}
 
+
+	//Create Gamma float array attribute 
+	GA_Attribute *gamma_attrib = gdp->findFloatArray(GA_ATTRIB_POINT, "Gamma", -1, -1); 
+	if (!gamma_attrib) gamma_attrib = gdp->addFloatArray(GA_ATTRIB_POINT, "Gamma", 1); 
+
+	if (!gamma_attrib)
+	{
+		//Failed to create gamma attribute
+		return false;
+	}
+
+	const GA_AIFNumericArray *gamma_aif = gamma_attrib->getAIFNumericArray();
+	if (!gamma_aif)
+	{
+		//Attribute is not a numeric array
+		return false;
+	}
+	   	 
 
 	// for each triangle add a primitive
 	for (size_t pr = 0; pr < tracker->mesh().nt(); ++pr) {
@@ -151,12 +169,15 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 	}
 	temp_face_labels->bumpDataId();
 
-	// Set the point positions and constrained attribute 
+	// Set the point positions and simulation attributes 
 
 	GA_RWHandleH const_h(gdp->addIntTuple(GA_ATTRIB_POINT, "const", 1));
 	GA_RWHandleV3 mass_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "mass", 3));
+	GA_RWHandleV3 vel_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "v", 3));
 
 	GA_Offset ptoff;
+	tracker->update_dbg_quantities();
+
 	for (size_t i = 0; i < tracker->mesh().nv(); ++i) {
 
 		ptoff = start_ptoff + i; 
@@ -164,8 +185,22 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		LosTopos::Vec3d new_pos = vertices[i];
 		gdp->setPos3(ptoff, UT_Vector3F(new_pos[0], new_pos[1], new_pos[2]));
 		
-		mass_h.set(ptoff, UT_Vector3F(st.m_masses[i][0], st.m_masses[i][1], st.m_masses[i][2]));
+		mass_h.set(ptoff, UT_Vector3F(st.m_masses[i][0], st.m_masses[i][1], st.m_masses[i][2]));		
+		vel_h.set(ptoff, UT_Vector3F(tracker->get_velocity(i)[0], tracker->get_velocity(i)[1], tracker->get_velocity(i)[2]));
 		if (st.vertex_is_all_solid(i)) const_h.set(ptoff, 1);
+
+		
+		//Write out gamma values
+		UT_Array<fpreal64> data;
+		for (int j = 0; j < tracker->Gamma(i).values.rows(); j++) {
+			for (int k = 0; k < tracker->Gamma(i).values.cols(); k++) {
+
+				data.append(tracker->Gamma(i).values(j,k));
+
+			}
+		}
+		gamma_aif->set(gamma_attrib, ptoff,data);
+
 	}
 
 

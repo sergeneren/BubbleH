@@ -64,7 +64,8 @@ public:
     double step(double dt);
     
     void update_dbg_quantities();
-    
+	Vec3d get_velocity(int v);
+
     const std::vector<size_t> & constrainedVertices() const { return m_constrained_vertices; }
           std::vector<size_t> & constrainedVertices()       { return m_constrained_vertices; }
     const std::vector<Vec3d> & constrainedPositions() const { return m_constrained_positions; }

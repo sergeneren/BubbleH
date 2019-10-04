@@ -25,6 +25,13 @@ bool VS3D::isVertexConstrained( size_t vert )
     return m_constrained_mapping.find(vert) != m_constrained_mapping.end();
 }
 
+Vec3d VS3D::get_velocity(int v) {
+
+	return m_dbg_v2[v];
+
+}
+
+
 VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs, const std::vector<LosTopos::Vec3st> & fs, const std::vector<LosTopos::Vec2i> & ls, const std::vector<size_t> & constrained_vertices,  const std::vector<Vec3d> & constrained_positions, const std::vector<Vec3d> & constrained_velocities, const std::vector<unsigned char> & constrained_fixed)
 {
     // load sim options
@@ -669,7 +676,7 @@ double VS3D::step(double dt)
 void VS3D::update_dbg_quantities()
 {
     // compute the vertex velocities for rendering
-    if (false)
+    if (true)
     {
         m_dbg_v2.clear();
         m_dbg_v2.resize(mesh().nv());
