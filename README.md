@@ -1,6 +1,6 @@
 # Bubble<sup>H</sup>
 
-Bubble<sup>H</sup> is an implementation of siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/) in Sidefx Houdini. It solves the soap film surfaces in a SOP node by using the surface tracker provided by the SoapFilm3D repo and a conversion between Houdini geometry and LosTopos mesh. 
+Bubble<sup>H</sup> is a wrapper for siggraph paper [Double Bubbles Sans Toil and Trouble: Discrete Circulation-Preserving Vortex Sheets for Soap Films and Foams](http://www.cs.columbia.edu/cg/doublebubbles/) in Sidefx Houdini. It solves the soap film surfaces in a SOP node by using the surface tracker provided by the SoapFilm3D repo and a conversion between Houdini geometry and LosTopos mesh. 
  
 
 ### Release Notes
