@@ -149,6 +149,7 @@ OP_Node * SOP_bubble::myConstructor(OP_Network *net, const char *name, OP_Operat
 
 SOP_bubble::SOP_bubble(OP_Network *net, const char *name, OP_Operator *op) : SOP_Node(net, name, op)
 {
+	flags().setTimeDep(1);
 	mySopFlags.setManagesDataIDs(true); 
 
 }
@@ -193,7 +194,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	size_t t1_trans = T1_TRANS(t);
 	fpreal t1_pull = T1_PULL(t);
 	size_t lt_sm_sbd = LT_SM_SBD(t);
-
+	fpreal frame = context.getFloatFrame();
 
 	// Parse options
 
@@ -216,7 +217,8 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	sim_options.addDoubleOption("density", 1.32e3);
 	sim_options.addDoubleOption("stretching", strech);
 	sim_options.addDoubleOption("bending", bend);
-
+	
+	sim_options.addDoubleOption("frame", frame);
 
 	sim_options.addDoubleOption("remeshing-resolution", rem_res);
 	sim_options.addIntegerOption("remeshing-iterations", rem_iter);
@@ -265,11 +267,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	}
 	
 	delete m_vs;
-
-
-	
-
-
+	   
 	return error();
 }
 

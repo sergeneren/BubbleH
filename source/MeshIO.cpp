@@ -31,7 +31,7 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 	if (pt_range.empty()) return NULL;
 
 	GA_ROHandleV3 pt_pos(gdp->getP());
-	GA_ROHandleI cons_pt(gdp, GA_ATTRIB_POINT, "const");
+	GA_ROHandleI cons_pt(gdp, GA_ATTRIB_POINT, "constrained");
 	GA_ROHandleV3 vel_h(gdp, GA_ATTRIB_POINT, "v");
 
 	for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
@@ -102,7 +102,7 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 
 			UT_Array<fpreal64> data; 
 			gamma_aif->get(gamma_attrib, it.getOffset(), data);
-			
+
 			size_t n = m_vs->nregion();
 			for (int j = 0; j < m_vs->Gamma(*it).values.rows(); j++) {
 				for (int k = 0; k < m_vs->Gamma(*it).values.cols(); k++) {
@@ -199,7 +199,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 	// Set the point positions and simulation attributes 
 
-	GA_RWHandleH const_h(gdp->addIntTuple(GA_ATTRIB_POINT, "const", 1));
+	GA_RWHandleH const_h(gdp->addIntTuple(GA_ATTRIB_POINT, "constrained", 1));
 	GA_RWHandleV3 mass_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "mass", 3));
 	GA_RWHandleV3 vel_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "v", 3));
 
@@ -224,7 +224,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 			for (int k = 0; k < tracker->Gamma(i).values.cols(); k++) {
 
 				data.append(tracker->Gamma(i).values(j,k));
-				
+
 			}
 		}
 		gamma_aif->set(gamma_attrib, ptoff,data);

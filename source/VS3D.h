@@ -59,8 +59,9 @@ public:
         double bending;
 		int iter;
 		bool rk4;
+		double frame;
 
-        SimOptions() : implicit(false), pbd(false), smoothing_coef(0), damping_coef(1), sigma(1), gravity(0), iter(0), rk4(0)
+        SimOptions() : implicit(false), pbd(false), smoothing_coef(0), damping_coef(1), sigma(1), gravity(0), iter(0), rk4(0), frame(0)
         { }
     };
     
