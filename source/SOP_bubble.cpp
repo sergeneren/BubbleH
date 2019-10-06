@@ -239,7 +239,6 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	sim_options.addBooleanOption("lostopos-allow-topology-changes", true);						// whether to allow topology changes
 
 
-		
 	// Create surface tracker
 
 	VS3D *m_vs = meshio.build_tracker(gdp, sim_options); 
@@ -250,11 +249,10 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		return error();
 	}
 
-
 	
 	// Integrate positions
 	m_vs->step(dt);
-	   
+	
 	
 	// Convert surface tracker mesh back to houdini geo
 	bool success = meshio.convert_to_houdini_geo(gdp, m_vs); 
@@ -265,7 +263,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 		addError(SOP_MESSAGE, buf.buffer());
 		return error();
 	}
-	
+
 	delete m_vs;
 	   
 	return error();

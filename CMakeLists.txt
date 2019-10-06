@@ -12,6 +12,8 @@ endif (NOT CMAKE_BUILD_TYPE)
 
 if (CMAKE_BUILD_TYPE MATCHES Debug)
   add_definitions (-DDEBUG)
+  string(REPLACE "/O2" "/Od" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+  string(CONCAT CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}" "/Z7")
 endif (CMAKE_BUILD_TYPE MATCHES Debug)
 
 get_filename_component(SOURCE_DIR ${CMAKE_SOURCE_DIR}/source ABSOLUTE)

@@ -84,7 +84,7 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 
 	VS3D *m_vs = new VS3D(vertices, faces, face_labels, sim_options, constrained_vertices, constrained_positions, constrained_velocities);
 	
-	m_vs->simOptions().bending = 0.025;
+
 	// Check if gamma values exist. If there is one, it means this is not the first frame 
 	const GA_Attribute *gamma_attrib = gdp->findFloatArray(GA_ATTRIB_POINT, "Gamma", -1, -1);
 	if(gamma_attrib){ 
@@ -134,7 +134,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 	GA_Offset start_ptoff = gdp->appendPointBlock(tracker->mesh().nv());
 
 
-	// We have deleted every attribute with primitives and points. Now we have to create them back 
+	// We have deleted every attribute alongside primitives and points. Now we have to create them back 
 
 	// Create triangle label attribute back  
 	GA_Attribute *temp_face_labels = gdp->findIntArray(GA_ATTRIB_PRIMITIVE, "label", -1, -1);
@@ -222,8 +222,8 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		UT_Array<fpreal64> data;
 		for (int j = 0; j < tracker->Gamma(i).values.rows(); j++) {
 			for (int k = 0; k < tracker->Gamma(i).values.cols(); k++) {
-
-				data.append(tracker->Gamma(i).values(j,k));
+				
+				data.append(tracker->Gamma(i).get(j, k));
 
 			}
 		}
