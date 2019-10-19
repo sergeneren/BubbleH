@@ -31,6 +31,12 @@ Vec3d VS3D::get_velocity(int v) {
 
 }
 
+double VS3D::get_curvature(int v) {
+
+	return m_dbg_v1[v][0]; //curvature of first index of triangle
+
+}
+
 
 VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs,
 	const std::vector<LosTopos::Vec3st> & fs,

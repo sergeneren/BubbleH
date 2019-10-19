@@ -218,7 +218,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 	GA_RWHandleH const_h(gdp->addIntTuple(GA_ATTRIB_POINT, "constrained", 1));
 	GA_RWHandleV3 mass_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "mass", 3));
 	GA_RWHandleV3 vel_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "v", 3));
-
+	GA_RWHandleF curv_h(gdp->addFloatTuple(GA_ATTRIB_POINT, "curvature", 1));
 	
 	tracker->update_dbg_quantities();
 
@@ -231,6 +231,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		
 		mass_h.set(ptoff, UT_Vector3F(st.m_masses[i][0], st.m_masses[i][1], st.m_masses[i][2]));		
 		vel_h.set(ptoff, UT_Vector3F(tracker->get_velocity(i)[0], tracker->get_velocity(i)[1], tracker->get_velocity(i)[2]));
+		curv_h.set(ptoff, tracker->get_curvature(i));
 		if (st.vertex_is_all_solid(i)) const_h.set(ptoff, 1);
 
 		

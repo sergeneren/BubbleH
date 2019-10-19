@@ -79,6 +79,7 @@ public:
     
     void update_dbg_quantities();
 	Vec3d get_velocity(int v);
+	double get_curvature(int v);
 
     const std::vector<size_t> & constrainedVertices() const { return m_constrained_vertices; }
           std::vector<size_t> & constrainedVertices()       { return m_constrained_vertices; }
