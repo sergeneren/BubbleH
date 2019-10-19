@@ -12,6 +12,9 @@
 #include <string>
 #include <map>
 
+#include "MathDefs.h"
+
+
 class Options
 {
 public:
@@ -21,6 +24,7 @@ public:
         INTEGER,
         DOUBLE,
         BOOLEAN,
+		VECTOR,
         
         TYPE_COUNT
     };
@@ -31,13 +35,15 @@ public:
     static void addIntegerOption(const std::string & key, int defaut_value);
     static void addDoubleOption(const std::string & key, double default_value);
     static void addBooleanOption(const std::string & key, bool default_value);
-    
+	static void addVectorOption(const std::string & key, Vector3s default_value);
+	
     static bool parseOptionFile(const std::string & file, bool verbose = false);
     
-    static const std::string & strValue(const std::string & key);
-    static int                 intValue(const std::string & key);
-    static double              doubleValue(const std::string & key);
-    static bool                boolValue(const std::string & key);
+    static const std::string &	strValue(const std::string & key);
+    static int					intValue(const std::string & key);
+    static double				doubleValue(const std::string & key);
+    static bool					boolValue(const std::string & key);
+	static Vector3s				vectorValue(const std::string & key);
     
 protected:
     class Option
@@ -50,6 +56,7 @@ protected:
         int         int_value;
         double      double_value;
         bool        bool_value;
+		Vector3s	vector_value;
     };
     
     static std::map<std::string, Option> s_options;

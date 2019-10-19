@@ -178,6 +178,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	fpreal rad = RAD(t); 
 	fpreal strech = STRECH(t); 
 	fpreal bend = BEND(t); 
+	UT_Vector3F grav = G(t); 
 	
 	fpreal rem_res = REMESH_RES(t); 
 	size_t rem_iter = REMESH_ITE(t);
@@ -210,7 +211,7 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	sim_options.addDoubleOption("smoothing-coef",sc);
 	sim_options.addDoubleOption("damping-coef", dc);
 	sim_options.addDoubleOption("sigma", sigma);
-	sim_options.addDoubleOption("gravity", 0.0);
+	sim_options.addVectorOption("gravity", Vector3s(grav[0], grav[1], grav[2]));
 	sim_options.addBooleanOption("fmmtl", false);
 	sim_options.addBooleanOption("looped", true);
 	sim_options.addDoubleOption("radius",rad);

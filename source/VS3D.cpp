@@ -53,7 +53,7 @@ VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs,
 	m_sim_options.smoothing_coef = opts.doubleValue("smoothing-coef");
 	m_sim_options.damping_coef = opts.doubleValue("damping-coef");
 	m_sim_options.sigma = opts.doubleValue("sigma");
-	m_sim_options.gravity = opts.doubleValue("gravity");
+	m_sim_options.gravity = opts.vectorValue("gravity");
 	m_sim_options.looped = opts.boolValue("looped");
 	m_sim_options.radius = opts.doubleValue("radius");
 	m_sim_options.density = opts.doubleValue("density");
@@ -235,7 +235,7 @@ VS3D::VS3D(const std::vector<LosTopos::Vec3d> & vs,
 	// Biot-Savart kernel regularization parameter
 	m_delta = max_edge_len * 0.5;
 
-	m_forces.push_back(new SimpleGravityForce(Vector3s(0, 0, -m_sim_options.gravity)));
+	m_forces.push_back(new SimpleGravityForce(m_sim_options.gravity));
 	m_forces.push_back(new VertexAreaForce(this, m_sim_options.sigma));
 	// initialize constraint stepper
 	m_constraint_stepper = new LinearizedImplicitEuler();

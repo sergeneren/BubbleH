@@ -60,6 +60,18 @@ void Options::addBooleanOption(const std::string & key, bool default_value)
     s_options[key] = o;
 }
 
+void Options::addVectorOption(const std::string & key, Vector3s default_value) {
+
+	assert(s_options.find(key) == s_options.end()); // verify this option doesn't already exit
+
+	Option o;
+	o.key = key;
+	o.type = VECTOR;
+	o.vector_value = default_value;
+
+	s_options[key] = o; 
+}
+
 
 bool Options::parseOptionFile(const std::string & file, bool verbose)
 {
@@ -93,6 +105,8 @@ bool Options::parseOptionFile(const std::string & file, bool verbose)
             case BOOLEAN:
                 ss >> i->second.bool_value;
                 break;
+			case VECTOR:
+				break;
             default:
                 assert(!"Unexpected option type");
                 break;
@@ -157,3 +171,10 @@ bool Options::boolValue(const std::string & key)
     return s_options[key].bool_value;
 }
 
+Vector3s Options::vectorValue(const std::string & key) 
+{
+	assert(s_options.find(key) != s_options.end()); // verify this option exists
+	assert(s_options[key].type == VECTOR);         // verify this option has the correct type
+	return s_options[key].vector_value;
+
+}

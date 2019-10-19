@@ -52,7 +52,7 @@ public:
         double smoothing_coef;
         double damping_coef;
         double sigma;
-        double gravity;
+        Vector3s gravity;
         double radius;
         double density;
         double stretching;
