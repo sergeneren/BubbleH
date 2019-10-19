@@ -33,7 +33,7 @@ Vec3d VS3D::get_velocity(int v) {
 
 double VS3D::get_curvature(int v) {
 
-	return m_dbg_v1[v][0]; //curvature of first index of triangle
+	return m_dbg_v1[v][0]; //curvature
 
 }
 

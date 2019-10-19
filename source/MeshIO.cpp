@@ -43,7 +43,7 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 			bool constrained = cons_pt.get(it.getOffset());
 
 			if (constrained) {
-				constrained_vertices.push_back(*it);
+				constrained_vertices.push_back(it.getIndex());
 				constrained_positions.push_back(Vec3d(pos[0], pos[1], pos[2]));
 				if (vel_h.isValid()) {
 					UT_Vector3F vel = vel_h.get(it.getOffset());
@@ -107,6 +107,13 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 
 		}
 	
+
+		for (size_t i = 0; i < constrained_vertices.size(); i++) {
+
+			size_t cv = constrained_vertices[i]; 
+			m_vs->Gamma(cv).set(0 , 1 , m_vs->Gamma(cv).get(0,1) - 10 * sim_options.doubleValue("timestep"));
+
+		}
 	}
 
 
@@ -117,11 +124,12 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 	std::vector<LosTopos::Vec3d> vertices;
-
+	std::vector<Vec3d> const_vel;
 	const LosTopos::SurfTrack &st = *(tracker->surfTrack());
-	vertices = st.get_newpositions();
 	
-
+	vertices = st.get_newpositions();
+	const_vel = tracker->constrainedVelocities();
+	std::cout << "size of constrained velocities: " << const_vel.size() << "\n";
 	gdp->clearAndDestroy();
 
 	GA_Offset start_ptoff = gdp->appendPointBlock(tracker->mesh().nv());
@@ -225,8 +233,11 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		mass_h.set(ptoff, UT_Vector3F(st.m_masses[i][0], st.m_masses[i][1], st.m_masses[i][2]));		
 		vel_h.set(ptoff, UT_Vector3F(tracker->get_velocity(i)[0], tracker->get_velocity(i)[1], tracker->get_velocity(i)[2]));
 		curv_h.set(ptoff, tracker->get_curvature(i));
-		if (st.vertex_is_all_solid(i)) const_h.set(ptoff, 1);
-
+		if (st.vertex_is_all_solid(i)) {
+			
+			const_h.set(ptoff, 1);
+			//vel_h.set(ptoff, UT_Vector3F(tracker->constrainedVelocities[i][0], tracker->constrainedVelocities[i][1], tracker->constrainedVelocities[i][2]));
+		}
 		
 		//Write out gamma values
 		UT_Array<fpreal64> data;
@@ -244,7 +255,7 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 	vel_h.bumpDataId();
 	mass_h.bumpDataId();
 
-
+	
 	gdp->bumpDataIdsForAddOrRemove(true, true, true);
 
 	return true;
