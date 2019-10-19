@@ -91,8 +91,6 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 			return NULL;
 		}
 
-
-
 		for (GA_Iterator it(pt_range.begin()); !it.atEnd(); ++it) {
 
 			UT_Array<fpreal64> data; 
