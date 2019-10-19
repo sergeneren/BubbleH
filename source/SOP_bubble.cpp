@@ -226,15 +226,15 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 
 	sim_options.addDoubleOption("lostopos-collision-epsilon-fraction", coll_eps);				// lostopos collision epsilon (fraction of mean edge length)
 	sim_options.addDoubleOption("lostopos-merge-proximity-epsilon-fraction", merge_eps);		// lostopos merge proximity epsilon (fraction of mean edge length)
-	sim_options.addBooleanOption("lostopos-perform-smoothing", smooth);						// whether or not to perform smoothing
-	sim_options.addDoubleOption("lostopos-max-volume-change-fraction", vc);					// maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
+	sim_options.addBooleanOption("lostopos-perform-smoothing", smooth);							// whether or not to perform smoothing
+	sim_options.addDoubleOption("lostopos-max-volume-change-fraction", vc);						// maximum allowed volume change during a remeshing operation (fraction of mean edge length cubed)
 	sim_options.addDoubleOption("lostopos-min-triangle-angle", min_tri_ang);					// min triangle angle (in degrees)
 	sim_options.addDoubleOption("lostopos-max-triangle-angle", max_tri_ang);					// max triangle angle (in degrees)
-	sim_options.addDoubleOption("lostopos-large-triangle-angle-to-split", lar_tri_ang);		// threshold for large angles to be split
+	sim_options.addDoubleOption("lostopos-large-triangle-angle-to-split", lar_tri_ang);			// threshold for large angles to be split
 	sim_options.addDoubleOption("lostopos-min-triangle-area-fraction", min_tri_area);			// minimum allowed triangle area (fraction of mean edge length squared)
 	sim_options.addBooleanOption("lostopos-t1-transition-enabled", t1_trans);					// whether t1 is enabled
 	sim_options.addDoubleOption("lostopos-t1-pull-apart-distance-fraction", t1_pull);			// t1 pull apart distance (fraction of mean edge legnth)
-	sim_options.addBooleanOption("lostopos-smooth-subdivision", lt_sm_sbd);					// whether to use smooth subdivision during remeshing
+	sim_options.addBooleanOption("lostopos-smooth-subdivision", lt_sm_sbd);						// whether to use smooth subdivision during remeshing
 	sim_options.addBooleanOption("lostopos-allow-non-manifold", true);							// whether to allow non-manifold geometry in the mesh
 	sim_options.addBooleanOption("lostopos-allow-topology-changes", true);						// whether to allow topology changes
 
@@ -265,7 +265,6 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	}
 
 	delete m_vs;
-	   
 	return error();
 }
 

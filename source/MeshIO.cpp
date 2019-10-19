@@ -170,7 +170,11 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		//Attribute is not a numeric array
 		return false;
 	}
-	   	 
+	
+	// Add vertex normal attribute if it doesn't exist
+	GA_RWHandleV3 vertex_normals_h(gdp->addFloatTuple(GA_ATTRIB_VERTEX, "N", 3)); 
+
+
 
 	// for each triangle add a primitive
 	for (size_t pr = 0; pr < tracker->mesh().nt(); ++pr) {
@@ -180,11 +184,23 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 		LosTopos::Vec3st indices = tracker->mesh().get_triangle(pr);
 
+		// Calculate area-weighted normals
+
+		LosTopos::Vec3st t = tracker->surfTrack()->m_mesh.get_triangle(pr); 
+		Vec3d x0 = tracker->pos(t[0]);
+		Vec3d x1 = tracker->pos(t[1]);
+		Vec3d x2 = tracker->pos(t[2]);
+
+		Vec3d nt = (x1 - x0).cross(x2 - x0); 
+		nt.normalize();
+
+		if (tracker->surfTrack()->m_mesh.get_triangle_label(pr)[0] < tracker->surfTrack()->m_mesh.get_triangle_label(pr)[1]) nt = -nt;
+
 		// Connect vertices
 		for (size_t i = 0; i < 3; ++i) {
 
 			gdp->getTopology().wireVertexPoint(start_vtxoff + i, start_ptoff + indices[2 - i]);
-
+			vertex_normals_h.set(start_vtxoff + i, UT_Vector3F(nt[0], nt[1], nt[2]));
 		}
 
 		// Write back triangle labels
@@ -239,8 +255,6 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 	return true;
 }
-
-
 
 
 MeshIO::~MeshIO() {}
