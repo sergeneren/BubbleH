@@ -53,22 +53,18 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 			}
 		}
 	}
-	
 
-	GA_OffsetArray neighbour_prims;
 	GA_Offset prim_offset;
 	const GA_Primitive *prim;
 	GA_ROHandleIA face_label(gdp, GA_ATTRIB_PRIMITIVE, "label");
 
 	for (GA_Iterator prim_it(gdp->getPrimitiveRange()); !prim_it.atEnd(); ++prim_it) {
-		gdp->getEdgeAdjacentPolygons(neighbour_prims, prim_it.getOffset());
 		prim = gdp->getPrimitive(prim_it.getOffset());
 		GA_Range prim_pt_range = prim->getPointRange();
-
 		std::vector<GA_Offset> pt_offsets;
 
 		for (GA_Iterator it(prim_pt_range.begin()); !it.atEnd(); ++it) {
-			pt_offsets.push_back(*it);
+			pt_offsets.push_back(it.getIndex());
 		}
 
 		faces.push_back(LosTopos::Vec3st(pt_offsets[2], pt_offsets[1], pt_offsets[0]));
@@ -78,7 +74,6 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 			face_label.get(prim_it.getOffset(), labels);
 			face_labels.push_back(LosTopos::Vec2i(labels[0], labels[1]));
 		}
-
 		else face_labels.push_back(LosTopos::Vec2i(1, 0));
 	}
 
@@ -107,7 +102,7 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 			for (int j = 0; j < m_vs->Gamma(*it).values.rows(); j++) {
 				for (int k = 0; k < m_vs->Gamma(*it).values.cols(); k++) {
 					fpreal64 val = data[(j*n)+k];
-					m_vs->Gamma(*it).set(j, k, val);
+					m_vs->Gamma(it.getIndex()).set(j, k, val);
 
 				}
 			}
