@@ -48,7 +48,7 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 				if (vel_h.isValid()) {
 					UT_Vector3F vel = vel_h.get(it.getOffset());
 					constrained_velocities.push_back(Vec3d(vel[0], vel[1], vel[2]));
-				}
+				}else constrained_velocities.push_back(Vec3d(0));
 
 			}
 		}
@@ -107,11 +107,11 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 
 		}
 	
-
+		// Add constrained velocities to gamma for blowing bubbles
 		for (size_t i = 0; i < constrained_vertices.size(); i++) {
 
 			size_t cv = constrained_vertices[i]; 
-			m_vs->Gamma(cv).set(0 , 1 , m_vs->Gamma(cv).get(0,1) - 10 * sim_options.doubleValue("timestep"));
+			m_vs->Gamma(cv).set(0 , 1 , m_vs->Gamma(cv).get(0,1) - constrained_velocities[i][0] * sim_options.doubleValue("timestep"));
 
 		}
 	}
@@ -124,12 +124,11 @@ VS3D * MeshIO::build_tracker(const GU_Detail *gdp, Options sim_options) {
 bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 
 	std::vector<LosTopos::Vec3d> vertices;
-	std::vector<Vec3d> const_vel;
+	std::vector<Vec3d> constrained_velocities;
 	const LosTopos::SurfTrack &st = *(tracker->surfTrack());
 	
 	vertices = st.get_newpositions();
-	const_vel = tracker->constrainedVelocities();
-	std::cout << "size of constrained velocities: " << const_vel.size() << "\n";
+	constrained_velocities = tracker->constrainedVelocities();
 	gdp->clearAndDestroy();
 
 	GA_Offset start_ptoff = gdp->appendPointBlock(tracker->mesh().nv());
@@ -223,6 +222,8 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 	
 	tracker->update_dbg_quantities();
 
+	std::vector<GA_Offset> constrained_points; 
+
 	for (size_t i = 0; i < tracker->mesh().nv(); ++i) {
 
 		GA_Offset ptoff = start_ptoff + i;
@@ -236,7 +237,8 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		if (st.vertex_is_all_solid(i)) {
 			
 			const_h.set(ptoff, 1);
-			//vel_h.set(ptoff, UT_Vector3F(tracker->constrainedVelocities[i][0], tracker->constrainedVelocities[i][1], tracker->constrainedVelocities[i][2]));
+			constrained_points.push_back(ptoff); 
+			
 		}
 		
 		//Write out gamma values
@@ -251,6 +253,16 @@ bool MeshIO::convert_to_houdini_geo(GU_Detail *gdp, VS3D *tracker) {
 		gamma_aif->set(gamma_attrib, ptoff,data);
 
 	}
+
+	for (size_t i = 0; i < constrained_velocities.size(); i++) {
+
+		vel_h.set(constrained_points.at(i), UT_Vector3F(constrained_velocities[i][0], constrained_velocities[i][1], constrained_velocities[i][2]));
+
+	}
+
+
+
+
 	gamma_attrib->bumpDataId();
 	vel_h.bumpDataId();
 	mass_h.bumpDataId();
