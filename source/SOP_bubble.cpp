@@ -172,8 +172,8 @@ OP_ERROR SOP_bubble::cookMySop(OP_Context & context)
 	size_t imp = IMP(t);
 	size_t pbd = PBD(t); 
 	size_t rk = RK4(t); 
-	fpreal sc = SC(t); 
-	fpreal dc = DC(t); 
+	fpreal sc = 1.0f / SC(t); 
+	fpreal dc = 1.0f / DC(t); 
 	fpreal sigma = SIGMA(t); 
 	fpreal rad = RAD(t); 
 	fpreal strech = STRECH(t); 
