@@ -38,7 +38,7 @@ After configuring, generate the visual studio solution. Build the solution with 
 Soap Film node expects some attributes to be created by the user before solving. Please take a look at the provided .hiplc files under "scenes" folder for examples. 
 
 ## Status
-This project is under active maintenance and development
+This project is under active maintenance
 
 ## Author
 
