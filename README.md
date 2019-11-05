@@ -5,7 +5,7 @@ Bubble<sup>H</sup> is a wrapper for siggraph paper [Double Bubbles Sans Toil and
 
 ### Release Notes
 
-v1.0 Initial Public Release
+v1.0.1 Public Release
 
 ## Installation
 
