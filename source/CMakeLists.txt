@@ -1,6 +1,6 @@
 #add houdini cmake lists
 
-set(HOUDINI_CMAKE_DIR "C:/Program Files/Side Effects Software/Houdini 17.5.327/toolkit/cmake")
+set(HOUDINI_CMAKE_DIR "C:/Program Files/Side Effects Software/Houdini 18.5.462/toolkit/cmake")
 
 list( APPEND CMAKE_PREFIX_PATH ${HOUDINI_CMAKE_DIR})
 
@@ -18,6 +18,7 @@ message(STATUS "Houdini directory: ${Houdini_DIR}")
 
 houdini_configure_target( BubbleH )
 
+set_target_properties(BubbleH PROPERTIES VS_GLOBAL_VcpkgEnabled true)
 
 #copy icon to %HOME%/%HOUDINI_VERSION%/config/icons folder
 
